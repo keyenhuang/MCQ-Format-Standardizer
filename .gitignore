@@ -17,6 +17,7 @@ config.json
 
 # Tool specific
 .antigravitycli/
+.gemini/
 
 # Data and outputs
 *.docx
