@@ -858,29 +858,24 @@ class MCQConverterApp(TkinterDnDCTk):
         bubble = ctk.CTkFrame(row_frame, fg_color=bubble_color, corner_radius=12)
         bubble.pack(side=anchor_side, anchor=anchor_align)
         
-        if is_user:
-            label = ctk.CTkLabel(bubble, text="" if animate else clean_text, text_color=text_color, font=("Segoe UI", 13),
-                                 wraplength=220, justify="left")
-            label.pack(padx=12, pady=8)
-            ui_element = label
-            is_textbox = False
+        # Estimate height for the text box based on character count and newlines
+        lines = 0
+        for line in clean_text.split('\n'):
+            lines += 1 + len(line) // 32
+        calc_height = max(30, lines * 20 + 10)
+        
+        textbox = ctk.CTkTextbox(bubble, text_color=text_color, fg_color="transparent", 
+                                 font=("Segoe UI", 13), wrap="word", width=250, height=calc_height)
+        textbox.pack(padx=8, pady=5)
+        
+        if not animate:
+            textbox.insert("0.0", clean_text)
+            textbox.configure(state="disabled")
         else:
-            # Estimate height for the text box based on character count and newlines
-            lines = 0
-            for line in clean_text.split('\n'):
-                lines += 1 + len(line) // 32
-            calc_height = max(30, lines * 20 + 10)
+            textbox.configure(state="disabled")
             
-            textbox = ctk.CTkTextbox(bubble, text_color=text_color, fg_color="transparent", 
-                                     font=("Segoe UI", 13), wrap="word", width=250, height=calc_height)
-            textbox.pack(padx=8, pady=5)
-            if not animate:
-                textbox.insert("0.0", clean_text)
-                textbox.configure(state="disabled")
-            else:
-                textbox.configure(state="disabled")
-            ui_element = textbox
-            is_textbox = True
+        ui_element = textbox
+        is_textbox = True
 
         if actions and not is_user:
             actions_frame = ctk.CTkFrame(bubble, fg_color="transparent")
