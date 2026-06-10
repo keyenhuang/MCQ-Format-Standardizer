@@ -33,7 +33,13 @@ class TkinterDnDCTk(ctk.CTk, TkinterDnD.DnDWrapper):
 # LLM Config Helper Functions
 # ---------------------------------------------------------------------------
 
+_CONFIG_CACHE = None
+
 def _get_config():
+    global _CONFIG_CACHE
+    if _CONFIG_CACHE is not None:
+        return _CONFIG_CACHE
+
     config = {
         "API_KEY": "",
         "BASE_URL": "https://api.groq.com/openai/v1",
@@ -51,11 +57,14 @@ def _get_config():
                     config["BASE_URL"] = data["BASE_URL"].strip()
                 if data.get("MODEL"):
                     config["MODEL"] = data["MODEL"].strip()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: Failed to load config.json: {e}")
+            
+    _CONFIG_CACHE = config
     return config
 
 def _save_config_value(key_name, value):
+    global _CONFIG_CACHE
     config_path = Path("config.json")
     try:
         data = {}
@@ -65,8 +74,14 @@ def _save_config_value(key_name, value):
         data[key_name] = value.strip() if isinstance(value, str) else value
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
+            
+        # Update cache if write was successful
+        if _CONFIG_CACHE is not None:
+            _CONFIG_CACHE[key_name] = data[key_name]
+            
         return True
-    except Exception:
+    except Exception as e:
+        print(f"Error saving config: {e}")
         return False
 
 def call_llm_api(prompt: str, config: dict) -> str:
@@ -358,9 +373,19 @@ def renumber_docx_inplace(filepath: Path, output_path: Path):
                 para.text = f"{prefix}{current_num}{sep}{body}"
     doc.save(str(output_path))
 
+def _read_text_file(filepath: Path) -> List[str]:
+    """Try reading a file with utf-8, fallback to system locale (e.g. gbk) if it fails."""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return f.readlines()
+    except UnicodeDecodeError:
+        import locale
+        sys_encoding = locale.getpreferredencoding()
+        with open(filepath, 'r', encoding=sys_encoding, errors='replace') as f:
+            return f.readlines()
+
 def renumber_txt_inplace(filepath: Path, output_path: Path):
-    with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
-        lines = f.readlines()
+    lines = _read_text_file(filepath)
     
     new_lines = []
     current_num = 1
@@ -379,7 +404,7 @@ def renumber_txt_inplace(filepath: Path, output_path: Path):
         f.writelines(new_lines)
 
 
-def _parse_question(text: str):
+def _parse_question(text: str) -> Optional[Tuple[Optional[int], str, int]]:
     text_stripped = text.strip()
     m = QUESTION_RE.match(text_stripped)
     if not m:
@@ -395,7 +420,7 @@ def _parse_question(text: str):
         return None, m.group(5).strip(), prefix_len
     return None
 
-def _parse_option(text: str):
+def _parse_option(text: str) -> Optional[Tuple[str, str, int]]:
     text_stripped = text.strip()
     m = OPTION_RE.match(text_stripped)
     if not m:
@@ -403,7 +428,7 @@ def _parse_option(text: str):
     prefix_len = m.start(2)
     return m.group(1).upper(), m.group(2).strip(), prefix_len
 
-def _parse_answer(text: str, current_options: List[str] = None):
+def _parse_answer(text: str, current_options: Optional[List[str]] = None) -> Optional[str]:
     """
     Normalizes input answer into strict output format: "Answer: X) [Text]"
     If only 'A' is provided, it tries to find the text from current_options.
@@ -442,7 +467,7 @@ def _parse_answer(text: str, current_options: List[str] = None):
     # Fallback: if it doesn't match a letter, just return as is with "Answer: " prefix
     return "Answer: " + raw_ans
 
-def _parse_level(text: str):
+def _parse_level(text: str) -> Optional[str]:
     m = LEVEL_RE.match(text.strip())
     if not m:
         return None
@@ -582,8 +607,7 @@ def parse_docx(filepath: Path, warnings_list=None):
 
 
 def parse_txt(filepath: Path, warnings_list=None):
-    with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
-        lines = [ln.rstrip('\n\r').strip() for ln in f]
+    lines = [ln.rstrip('\n\r').strip() for ln in _read_text_file(filepath)]
     return _paragraphs_to_questions(lines, warnings_list)
 
 
@@ -667,8 +691,8 @@ def _build_output_document(questions):
             if m:
                 ans_letter = m.group(1).upper()
             else:
-                # Fallback: search for first A-H letter after 'Answer:'
-                m2 = re.search(r'([A-H])', q['answer'].replace('Answer:', ''), re.IGNORECASE)
+                # Fallback: search for an isolated A-H letter after 'Answer:'
+                m2 = re.search(r'\b([A-H])\b', q['answer'].replace('Answer:', ''), re.IGNORECASE)
                 if m2:
                     ans_letter = m2.group(1).upper()
         
