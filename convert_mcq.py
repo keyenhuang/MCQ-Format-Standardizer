@@ -847,7 +847,7 @@ class MCQConverterApp(TkinterDnDCTk):
         row_frame.pack(fill="x", pady=6, padx=8)
         
         # Clean text (remove leftover markdown if any)
-        clean_text = text.replace("**", "").replace("__", "")
+        clean_text = text.replace("**", "").replace("__", "").strip()
         
         is_user = (sender.lower() == "user")
         bubble_color = "#E2E8F0" if is_user else "#3B82F6"
@@ -861,12 +861,12 @@ class MCQConverterApp(TkinterDnDCTk):
         # Estimate height for the text box based on character count and newlines
         lines = 0
         for line in clean_text.split('\n'):
-            lines += 1 + len(line) // 32
-        calc_height = max(30, lines * 20 + 10)
+            lines += 1 + len(line) // 36
+        calc_height = max(24, lines * 20 + 8)
         
         textbox = ctk.CTkTextbox(bubble, text_color=text_color, fg_color="transparent", 
                                  font=("Segoe UI", 13), wrap="word", width=250, height=calc_height)
-        textbox.pack(padx=8, pady=5)
+        textbox.pack(padx=10, pady=(6, 6))
         
         if not animate:
             textbox.insert("0.0", clean_text)
