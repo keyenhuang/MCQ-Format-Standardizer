@@ -858,24 +858,31 @@ class MCQConverterApp(TkinterDnDCTk):
         bubble = ctk.CTkFrame(row_frame, fg_color=bubble_color, corner_radius=12)
         bubble.pack(side=anchor_side, anchor=anchor_align)
         
-        # Estimate height for the text box based on character count and newlines
-        lines = 0
-        for line in clean_text.split('\n'):
-            lines += 1 + len(line) // 36
-        calc_height = max(24, lines * 20 + 8)
-        
         textbox = ctk.CTkTextbox(bubble, text_color=text_color, fg_color="transparent", 
-                                 font=("Segoe UI", 13), wrap="word", width=250, height=calc_height)
+                                 font=("Segoe UI", 13), wrap="word", width=250)
         textbox.pack(padx=10, pady=(6, 6))
         
-        if not animate:
-            textbox.insert("0.0", clean_text)
+        # Insert text temporarily to calculate exact required height
+        textbox.insert("0.0", clean_text)
+        textbox.update_idletasks()
+        
+        # Get actual wrapped display lines from the underlying tkinter Text widget
+        display_lines_tuple = textbox._textbox.count("1.0", "end-1c", "displaylines")
+        num_lines = display_lines_tuple[0] if display_lines_tuple else 1
+        
+        # Calculate exact height: ~19px per line for Segoe UI 13, plus internal padding
+        exact_height = num_lines * 19 + 14
+        textbox.configure(height=exact_height)
+        
+        if animate:
+            textbox.delete("0.0", "end")
             textbox.configure(state="disabled")
+            ui_element = textbox
+            is_textbox = True
         else:
             textbox.configure(state="disabled")
-            
-        ui_element = textbox
-        is_textbox = True
+            ui_element = textbox
+            is_textbox = True
 
         if actions and not is_user:
             actions_frame = ctk.CTkFrame(bubble, fg_color="transparent")
