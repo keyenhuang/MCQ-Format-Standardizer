@@ -99,13 +99,12 @@ def call_llm_api(prompt: str, config: dict) -> str:
         return "⚠️ Base URL is not set. Use `/baseurl <url>` to set it."
         
     system_instruction = (
-        "You are MCQ Copilot, an intelligent AI assistant built into the MCQ Batch Converter desktop app. "
-        "You are a general-purpose assistant capable of answering questions on any subject "
-        "(e.g., mathematics, physics, engineering, language, history, coding) with high accuracy. "
-        "Keep your answers helpful, clear, and concise. "
-        "If the user asks how to use the app, mention that they can drag and drop docx/txt files, "
-        "select standardization or renumbering mode, and click Convert. "
-        "If the user asks to convert, they should type 'convert' to trigger the conversion."
+        "You are MCQ Copilot, a friendly and intelligent AI assistant built into the MCQ Batch Converter app. "
+        "Your goal is to assist users with file conversions, explain concepts, and provide helpful guidance. "
+        "CRITICAL: This chat UI does NOT support Markdown. Do NOT use asterisks (**) for bold, or underscores (_) for italics. "
+        "Keep your answers plain text, clear, concise, and engaging. You can use emojis to express emotions! "
+        "If the user asks to convert, remind them they can click the Convert button or use quick actions. "
+        "Always reply in English."
     )
     
     url = f"{base_url}/chat/completions"
@@ -842,35 +841,66 @@ class MCQConverterApp(TkinterDnDCTk):
         # Initial greeting from Copilot
         self.add_chat_message("Copilot", "Hi! I am your MCQ Copilot. Ask me how to use the converter, explain metrology questions, or type 'convert' to trigger processing!")
 
-    def add_chat_message(self, sender: str, text: str):
+    def add_chat_message(self, sender: str, text: str, animate: bool = False, actions: list = None):
         # Create row frame
         row_frame = ctk.CTkFrame(self.chat_scroll_frame, fg_color="transparent")
         row_frame.pack(fill="x", pady=6, padx=8)
         
-        # Design alignment and styling based on sender
-        if sender.lower() == "user":
-            bubble_color = "#E2E8F0"
-            text_color = "#1E293B"
-            
-            bubble = ctk.CTkFrame(row_frame, fg_color=bubble_color, corner_radius=12)
-            bubble.pack(side="right", anchor="e")
-            
-            label = ctk.CTkLabel(bubble, text=text, text_color=text_color, font=("Segoe UI", 13),
-                                 wraplength=220, justify="left")
-            label.pack(padx=12, pady=8)
-        else:
-            bubble_color = "#3B82F6"
-            text_color = "white"
-            
-            bubble = ctk.CTkFrame(row_frame, fg_color=bubble_color, corner_radius=12)
-            bubble.pack(side="left", anchor="w")
-            
-            label = ctk.CTkLabel(bubble, text=text, text_color=text_color, font=("Segoe UI", 13),
-                                 wraplength=220, justify="left")
-            label.pack(padx=12, pady=8)
+        # Clean text (remove leftover markdown if any)
+        clean_text = text.replace("**", "").replace("__", "")
+        
+        is_user = (sender.lower() == "user")
+        bubble_color = "#E2E8F0" if is_user else "#3B82F6"
+        text_color = "#1E293B" if is_user else "white"
+        anchor_side = "right" if is_user else "left"
+        anchor_align = "e" if is_user else "w"
+        
+        bubble = ctk.CTkFrame(row_frame, fg_color=bubble_color, corner_radius=12)
+        bubble.pack(side=anchor_side, anchor=anchor_align)
+        
+        label = ctk.CTkLabel(bubble, text="" if animate else clean_text, text_color=text_color, font=("Segoe UI", 13),
+                             wraplength=220, justify="left")
+        label.pack(padx=12, pady=8)
+
+        if actions and not is_user:
+            actions_frame = ctk.CTkFrame(bubble, fg_color="transparent")
+            actions_frame.pack(fill="x", padx=12, pady=(0, 8))
+            for act in actions:
+                btn = ctk.CTkButton(actions_frame, text=act["text"], height=24, font=("Segoe UI", 11, "bold"),
+                                    fg_color="#FFFFFF", text_color="#3B82F6", hover_color="#F1F5F9",
+                                    corner_radius=6, command=act["command"])
+                btn.pack(side="left", padx=(0, 5), pady=2)
+                
+        if animate:
+            self._animate_text(label, clean_text, 0)
             
         # Auto-scroll to bottom
         self.after(50, lambda: self.chat_scroll_frame._parent_canvas.yview_moveto(1.0))
+
+    def _animate_text(self, label, full_text, index):
+        if index <= len(full_text):
+            label.configure(text=full_text[:index])
+            self.chat_scroll_frame._parent_canvas.yview_moveto(1.0)
+            self.after(15, self._animate_text, label, full_text, index + 1)
+
+    def show_thinking_indicator(self):
+        self.thinking_frame = ctk.CTkFrame(self.chat_scroll_frame, fg_color="transparent")
+        self.thinking_frame.pack(fill="x", pady=6, padx=8)
+        bubble = ctk.CTkFrame(self.thinking_frame, fg_color="#3B82F6", corner_radius=12)
+        bubble.pack(side="left", anchor="w")
+        self.thinking_label = ctk.CTkLabel(bubble, text="Thinking...", text_color="white", font=("Segoe UI", 13, "italic"))
+        self.thinking_label.pack(padx=12, pady=8)
+        self.after(50, lambda: self.chat_scroll_frame._parent_canvas.yview_moveto(1.0))
+        self._animate_thinking(0)
+        
+    def _animate_thinking(self, dots):
+        if hasattr(self, 'thinking_label') and self.thinking_label.winfo_exists():
+            self.thinking_label.configure(text="Thinking" + "." * (dots % 4))
+            self.after(400, self._animate_thinking, dots + 1)
+
+    def hide_thinking_indicator(self):
+        if hasattr(self, 'thinking_frame') and self.thinking_frame.winfo_exists():
+            self.thinking_frame.destroy()
 
     def handle_chat_submit(self):
         msg = self.chat_entry.get().strip()
@@ -879,6 +909,7 @@ class MCQConverterApp(TkinterDnDCTk):
             
         self.chat_entry.delete(0, "end")
         self.add_chat_message("User", msg)
+        self.show_thinking_indicator()
         
         self.chat_send_btn.configure(state="disabled")
         self.chat_entry.configure(state="disabled")
@@ -894,7 +925,7 @@ class MCQConverterApp(TkinterDnDCTk):
         if msg.startswith("/apikey "):
             key_part = msg[len("/apikey "):].strip()
             if _save_config_value("API_KEY", key_part):
-                self.after(0, lambda: self.finish_copilot_reply("🔑 **API Key saved successfully!**"))
+                self.after(0, lambda: self.finish_copilot_reply("🔑 API Key saved successfully!"))
             else:
                 self.after(0, lambda: self.finish_copilot_reply("❌ Failed to save API Key locally in config.json. Please check file permissions."))
             return
@@ -903,7 +934,7 @@ class MCQConverterApp(TkinterDnDCTk):
         if msg.startswith("/baseurl "):
             url_part = msg[len("/baseurl "):].strip()
             if _save_config_value("BASE_URL", url_part):
-                self.after(0, lambda: self.finish_copilot_reply(f"🔗 **Base URL saved successfully!**\n`{url_part}`"))
+                self.after(0, lambda: self.finish_copilot_reply(f"🔗 Base URL saved successfully!\n{url_part}"))
             else:
                 self.after(0, lambda: self.finish_copilot_reply("❌ Failed to save Base URL settings."))
             return
@@ -912,7 +943,7 @@ class MCQConverterApp(TkinterDnDCTk):
         if msg.startswith("/model "):
             model_part = msg[len("/model "):].strip()
             if _save_config_value("MODEL", model_part):
-                self.after(0, lambda: self.finish_copilot_reply(f"🎯 **Model name saved successfully!**\n`{model_part}`"))
+                self.after(0, lambda: self.finish_copilot_reply(f"🎯 Model name saved successfully!\n{model_part}"))
             else:
                 self.after(0, lambda: self.finish_copilot_reply("❌ Failed to save model name settings."))
             return
@@ -930,13 +961,13 @@ class MCQConverterApp(TkinterDnDCTk):
         # Check command: renumber
         elif "renumber" in msg_lower:
             self.after(0, lambda: self.mode_var.set("renumber"))
-            response = "🔄 Switched conversion mode to: **Only Renumber**."
+            response = "🔄 Switched conversion mode to: Only Renumber."
             self.after(0, lambda r=response: self.finish_copilot_reply(r))
             
         # Check command: standard
         elif "standard" in msg_lower:
             self.after(0, lambda: self.mode_var.set("standard"))
-            response = "📋 Switched conversion mode to: **Standardize Format**."
+            response = "📋 Switched conversion mode to: Standardize Format."
             self.after(0, lambda r=response: self.finish_copilot_reply(r))
             
         # Check command: convert
@@ -952,27 +983,27 @@ class MCQConverterApp(TkinterDnDCTk):
         elif "help" in msg_lower:
             response = (
                 "Here is how to use the MCQ Converter:\n"
-                "1. Drag & drop `.docx` or `.txt` files into the left box (or click to browse).\n"
+                "1. Drag & drop .docx or .txt files into the left box (or click to browse).\n"
                 "2. Choose either 'Standardize Format' or 'Only Renumber'.\n"
                 "3. Click 'Convert All' to process the files.\n\n"
-                "**Quick Chat Commands**:\n"
-                "- `clear`: Clear the selected file list.\n"
-                "- `standard`: Switch to Standardize Format mode.\n"
-                "- `renumber`: Switch to Only Renumber mode.\n"
-                "- `convert`: Start the conversion.\n\n"
-                "**LLM Config Commands**:\n"
-                "- `/apikey <key>`: Set API Key.\n"
-                "- `/baseurl <url>`: Set custom API base URL (e.g., `https://api.groq.com/openai/v1`).\n"
-                "- `/model <name>`: Set model name (e.g., `llama-3.3-70b-versatile` or `Qwen/Qwen2.5-7B-Instruct`)."
+                "Quick Chat Commands:\n"
+                "- clear: Clear the selected file list.\n"
+                "- standard: Switch to Standardize Format mode.\n"
+                "- renumber: Switch to Only Renumber mode.\n"
+                "- convert: Start the conversion.\n\n"
+                "LLM Config Commands:\n"
+                "- /apikey <key>: Set API Key.\n"
+                "- /baseurl <url>: Set custom API base URL.\n"
+                "- /model <name>: Set model name."
             )
             self.after(500, lambda r=response: self.finish_copilot_reply(r))
             
         # If no API key is set, and it's not a command, prompt user to set it
         elif not api_key:
             response = (
-                "⚠️ **API Key not found.**\n\n"
-                "To enable the AI model for Q&A, please type `/apikey <your_key>` in this chat box to save it locally in config.json.\n\n"
-                "*(Basic local commands like `clear`, `convert`, `standard`, `renumber`, and `help` are still available without a key!)*"
+                "⚠️ API Key not found.\n\n"
+                "To enable the AI model for Q&A, please type '/apikey <your_key>' in this chat box to save it locally in config.json.\n\n"
+                "(Basic local commands like clear, convert, standard, renumber, and help are still available without a key!)"
             )
             self.after(500, lambda r=response: self.finish_copilot_reply(r))
             
@@ -987,8 +1018,9 @@ class MCQConverterApp(TkinterDnDCTk):
             response = call_llm_api(prompt, config)
             self.after(0, lambda r=response: self.finish_copilot_reply(r))
 
-    def finish_copilot_reply(self, reply_text):
-        self.add_chat_message("Copilot", reply_text)
+    def finish_copilot_reply(self, reply_text, actions=None):
+        self.hide_thinking_indicator()
+        self.add_chat_message("Copilot", reply_text, animate=True, actions=actions)
         self.chat_send_btn.configure(state="normal")
         self.chat_entry.configure(state="normal")
         self.chat_entry.focus()
@@ -1036,8 +1068,14 @@ class MCQConverterApp(TkinterDnDCTk):
         # Notify Copilot of added files
         mode = self.mode_var.get()
         mode_str = "Standardize Format" if mode == "standard" else "Only Renumber"
-        added_list = ", ".join(f"**{p.name}**" for p in paths)
-        self.add_chat_message("Copilot", f"📂 **Added to conversion queue**:\n- {added_list}\n\n*(Ready to process in **{mode_str}** mode)*")
+        added_list = ", ".join(f"{p.name}" for p in paths)
+        
+        msg = f"📂 Added to conversion queue:\n- {added_list}\n\n(Ready to process in {mode_str} mode)"
+        actions = [
+            {"text": "🚀 Convert Now", "command": self.start_conversion},
+            {"text": "🧹 Clear", "command": lambda: self.clear_selection(notify=True)}
+        ]
+        self.add_chat_message("Copilot", msg, animate=True, actions=actions)
 
     def clear_selection(self, notify=True):
         self.input_files = []
@@ -1046,7 +1084,7 @@ class MCQConverterApp(TkinterDnDCTk):
         self.convert_btn.configure(state="disabled")
         self.drop_frame.configure(border_color="#1f538d")
         if notify:
-            self.add_chat_message("Copilot", "🧹 **File queue cleared**.")
+            self.add_chat_message("Copilot", "🧹 File queue cleared.", animate=True)
 
     def start_conversion(self):
         if not self.input_files: return
@@ -1071,8 +1109,8 @@ class MCQConverterApp(TkinterDnDCTk):
         # Notify Copilot that conversion has started
         mode = self.mode_var.get()
         mode_str = "Standardize Format" if mode == "standard" else "Only Renumber"
-        file_list = ", ".join(f"**{f.name}**" for f, _ in targets)
-        self.add_chat_message("Copilot", f"🚀 **Starting conversion** for:\n- {file_list}\n\n*(Mode: **{mode_str}**)*")
+        file_list = ", ".join(f"{f.name}" for f, _ in targets)
+        self.add_chat_message("Copilot", f"🚀 Starting conversion for:\n- {file_list}\n\n(Mode: {mode_str})", animate=True)
         
         threading.Thread(target=self.process_batch, args=(targets,), daemon=True).start()
 
@@ -1148,42 +1186,44 @@ class MCQConverterApp(TkinterDnDCTk):
         messagebox.showinfo("Success", f"Successfully converted {success} of {total} files.")
         
         # Detailed success notification in Copilot Chat Sidebar
-        msg_parts = [f"✅ **Conversion Completed!** Successfully processed **{success} of {total}** file(s).\n"]
+        msg_parts = [f"✅ Conversion Completed! Successfully processed {success} of {total} file(s).\n"]
         for detail in batch_details:
             name = detail["filename"]
             if detail["status"] == "success":
                 math_info = ""
                 if detail["math_count"] > 0:
-                    math_info = f" (Preserved **{detail['math_count']}** math formulas as editable Office Math objects)"
+                    math_info = f" (Preserved {detail['math_count']} math formulas)"
                 
                 if detail["warnings"]:
-                    msg_parts.append(f"- **{name}**: Completed with format warnings.{math_info}")
+                    msg_parts.append(f"- {name}: Completed with format warnings.{math_info}")
                 else:
-                    msg_parts.append(f"- **{name}**: Completed cleanly.{math_info}")
+                    msg_parts.append(f"- {name}: Completed cleanly.{math_info}")
             else:
-                msg_parts.append(f"- **{name}**: ❌ Failed. Reason: {detail.get('error_msg', 'Unknown error')}")
+                msg_parts.append(f"- {name}: ❌ Failed. Reason: {detail.get('error_msg', 'Unknown error')}")
                 
-        self.add_chat_message("Copilot", "\n".join(msg_parts))
+        self.add_chat_message("Copilot", "\n".join(msg_parts), animate=True)
         
         self.clear_selection(notify=False)
         self.clear_btn.configure(state="normal")
 
     def notify_warnings_in_chat(self, filename: str, warnings: List[str]):
-        warn_msg = f"⚠️ I detected some formatting issues in **{filename}** during conversion:\n\n"
+        warn_msg = f"⚠️ I detected some formatting issues in {filename} during conversion:\n\n"
         for w in warnings:
             cleaned_w = w.replace("Warning: ", "")
             warn_msg += f"- {cleaned_w}\n"
-        warn_msg += "\n*Tip: Check the source document to make sure questions have at least 2 options and a valid Answer.*"
-        self.add_chat_message("Copilot", warn_msg)
+        warn_msg += "\nTip: Check the source document to make sure questions have at least 2 options and a valid Answer."
+        self.add_chat_message("Copilot", warn_msg, animate=True)
 
     def notify_error_in_chat(self, filename: str, err_msg: str):
         diagnostic = _diagnose_error(err_msg)
+        # remove markdown from diagnostic message
+        diagnostic_clean = diagnostic.replace("**", "")
         err_text = (
-            f"❌ **Failed to convert {filename}**\n\n"
-            f"**Error Details**: `{err_msg}`\n\n"
-            f"**Diagnosis & Actionable Advice**:\n{diagnostic}"
+            f"❌ Failed to convert {filename}\n\n"
+            f"Error Details: {err_msg}\n\n"
+            f"Diagnosis & Actionable Advice:\n{diagnostic_clean}"
         )
-        self.add_chat_message("Copilot", err_text)
+        self.add_chat_message("Copilot", err_text, animate=True)
 
 
 if __name__ == "__main__":
