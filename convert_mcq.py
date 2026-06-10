@@ -870,9 +870,21 @@ class MCQConverterApp(TkinterDnDCTk):
         display_lines_tuple = textbox._textbox.count("1.0", "end-1c", "displaylines")
         num_lines = display_lines_tuple[0] if display_lines_tuple else 1
         
-        # Calculate exact height: ~19px per line for Segoe UI 13, plus internal padding
-        exact_height = num_lines * 19 + 14
+        # Calculate exact height: ~20px per line for Segoe UI 13, plus internal padding
+        exact_height = num_lines * 20 + 15
         textbox.configure(height=exact_height)
+        
+        # Hide the internal scrollbar to prevent visual clutter
+        if hasattr(textbox, '_scrollbar') and textbox._scrollbar:
+            textbox._scrollbar.grid_forget()
+            
+        # Prevent internal scrolling and pass the mouse wheel event to the parent scrollable frame
+        def _on_mousewheel(event):
+            if self.chat_scroll_frame._parent_canvas.winfo_exists():
+                self.chat_scroll_frame._parent_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            return "break"
+            
+        textbox._textbox.bind("<MouseWheel>", _on_mousewheel)
         
         if animate:
             textbox.delete("0.0", "end")
