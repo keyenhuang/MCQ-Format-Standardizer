@@ -720,8 +720,9 @@ class MCQConverterApp(TkinterDnDCTk):
         self.geometry("960x600")
         self.resizable(False, False)
         
-        ctk.set_appearance_mode("System")
+        ctk.set_appearance_mode("Light")
         ctk.set_default_color_theme("blue")
+        self.configure(fg_color="#F1F5F9") # Soft neutral background
 
         self.input_files: List[Path] = []
         self.setup_ui()
@@ -732,24 +733,24 @@ class MCQConverterApp(TkinterDnDCTk):
         self.left_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.left_frame.pack(side="left", fill="both", expand=True, padx=(20, 10), pady=20)
         
-        self.right_frame = ctk.CTkFrame(self, width=380, corner_radius=15)
+        self.right_frame = ctk.CTkFrame(self, width=380, corner_radius=15, fg_color="#FFFFFF", border_width=1, border_color="#E2E8F0")
         self.right_frame.pack(side="right", fill="both", expand=False, padx=(10, 20), pady=20)
         self.right_frame.pack_propagate(False)
 
         # ----------------- Left Frame Components -----------------
-        self.header = ctk.CTkLabel(self.left_frame, text="MCQ Converter", font=("Segoe UI", 24, "bold"))
+        self.header = ctk.CTkLabel(self.left_frame, text="MCQ Converter", font=("Segoe UI", 26, "bold"), text_color="#1E293B")
         self.header.pack(pady=(10, 5))
 
-        self.subheader = ctk.CTkLabel(self.left_frame, text="Advanced Batch Processing (Supports formulas)", font=("Segoe UI", 12))
+        self.subheader = ctk.CTkLabel(self.left_frame, text="Advanced Batch Processing (Supports formulas)", font=("Segoe UI", 13), text_color="#64748B")
         self.subheader.pack(pady=(0, 10))
 
         # Drop Zone
-        self.drop_frame = ctk.CTkFrame(self.left_frame, width=500, height=180, border_width=2, border_color="#1f538d")
+        self.drop_frame = ctk.CTkFrame(self.left_frame, width=500, height=180, border_width=2, border_color="#3B82F6", fg_color="#F8FAFC", corner_radius=12)
         self.drop_frame.pack_propagate(False)
         self.drop_frame.pack(pady=10, padx=10)
 
         self.drop_label = ctk.CTkLabel(self.drop_frame, text="Drag and Drop files here\nor\nClick to Browse", 
-                                      font=("Segoe UI", 14), cursor="hand2")
+                                      font=("Segoe UI", 15), text_color="#3B82F6", cursor="hand2")
         self.drop_label.pack(expand=True, fill="both")
         self.drop_label.bind("<Button-1>", lambda e: self.choose_files())
 
@@ -768,7 +769,10 @@ class MCQConverterApp(TkinterDnDCTk):
             self.mode_frame, 
             text="Standardize Format", 
             variable=self.mode_var, 
-            value="standard"
+            value="standard",
+            text_color="#1E293B",
+            fg_color="#2563EB",
+            hover_color="#3B82F6"
         )
         self.radio_standard.pack(side="left", padx=15)
         
@@ -776,7 +780,10 @@ class MCQConverterApp(TkinterDnDCTk):
             self.mode_frame, 
             text="Only Renumber", 
             variable=self.mode_var, 
-            value="renumber"
+            value="renumber",
+            text_color="#1E293B",
+            fg_color="#2563EB",
+            hover_color="#3B82F6"
         )
         self.radio_renumber.pack(side="left", padx=15)
 
@@ -784,15 +791,17 @@ class MCQConverterApp(TkinterDnDCTk):
         self.button_frame = ctk.CTkFrame(self.left_frame, fg_color="transparent")
         self.button_frame.pack(pady=15)
 
-        self.convert_btn = ctk.CTkButton(self.button_frame, text="Convert All", command=self.start_conversion, state="disabled")
+        self.convert_btn = ctk.CTkButton(self.button_frame, text="Convert All", command=self.start_conversion, state="disabled", 
+                                         fg_color="#F97316", hover_color="#EA580C", text_color="white", font=("Segoe UI", 15, "bold"), corner_radius=8)
         self.convert_btn.pack(side="left", padx=10)
 
-        self.clear_btn = ctk.CTkButton(self.button_frame, text="Clear List", fg_color="gray", hover_color="#555555", command=self.clear_selection)
+        self.clear_btn = ctk.CTkButton(self.button_frame, text="Clear List", fg_color="transparent", hover_color="#F1F5F9", 
+                                       border_width=1, border_color="#CBD5E1", text_color="#64748B", command=self.clear_selection, corner_radius=8)
         self.clear_btn.pack(side="left", padx=10)
 
         # Status
         self.status_var = ctk.StringVar(value="Ready")
-        self.status_label = ctk.CTkLabel(self.left_frame, textvariable=self.status_var, font=("Segoe UI", 12, "bold"), text_color="#1f538d")
+        self.status_label = ctk.CTkLabel(self.left_frame, textvariable=self.status_var, font=("Segoe UI", 13, "bold"), text_color="#2563EB")
         self.status_label.pack(side="bottom", pady=10)
 
         # ----------------- Right Frame Components (Copilot Sidebar) -----------------
@@ -803,14 +812,14 @@ class MCQConverterApp(TkinterDnDCTk):
         self.copilot_title_frame = ctk.CTkFrame(self.right_frame, fg_color="transparent")
         self.copilot_title_frame.pack(fill="x", padx=15, pady=(15, 5))
         
-        self.copilot_title = ctk.CTkLabel(self.copilot_title_frame, text="Copilot", font=("Segoe UI", 18, "bold"))
+        self.copilot_title = ctk.CTkLabel(self.copilot_title_frame, text="Copilot", font=("Segoe UI", 18, "bold"), text_color="#1E293B")
         self.copilot_title.pack(side="left")
         
         # Green online dot
-        self.online_dot = ctk.CTkLabel(self.copilot_title_frame, text="●", text_color="green", font=("Segoe UI", 10))
+        self.online_dot = ctk.CTkLabel(self.copilot_title_frame, text="●", text_color="#10B981", font=("Segoe UI", 10))
         self.online_dot.pack(side="left", padx=(5, 0))
         
-        self.copilot_subtitle = ctk.CTkLabel(self.right_frame, text="AI assistant powered by CopilotKit", font=("Segoe UI", 10, "italic"), text_color="gray")
+        self.copilot_subtitle = ctk.CTkLabel(self.right_frame, text="AI assistant powered by CopilotKit", font=("Segoe UI", 11, "italic"), text_color="#64748B")
         self.copilot_subtitle.pack(anchor="w", padx=15, pady=(0, 10))
         
         # Scrollable Chat Log container
@@ -821,11 +830,13 @@ class MCQConverterApp(TkinterDnDCTk):
         self.chat_input_frame = ctk.CTkFrame(self.right_frame, fg_color="transparent")
         self.chat_input_frame.pack(fill="x", padx=15, pady=15)
         
-        self.chat_entry = ctk.CTkEntry(self.chat_input_frame, placeholder_text="Ask copilot...", font=("Segoe UI", 12))
+        self.chat_entry = ctk.CTkEntry(self.chat_input_frame, placeholder_text="Ask copilot...", font=("Segoe UI", 13),
+                                       border_color="#CBD5E1", fg_color="#F8FAFC", text_color="#1E293B")
         self.chat_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
         self.chat_entry.bind("<Return>", lambda event: self.handle_chat_submit())
         
-        self.chat_send_btn = ctk.CTkButton(self.chat_input_frame, text="Send", width=60, command=self.handle_chat_submit)
+        self.chat_send_btn = ctk.CTkButton(self.chat_input_frame, text="Send", width=60, command=self.handle_chat_submit,
+                                           fg_color="#2563EB", hover_color="#1D4ED8", text_color="white", corner_radius=8)
         self.chat_send_btn.pack(side="right")
         
         # Initial greeting from Copilot
@@ -838,23 +849,23 @@ class MCQConverterApp(TkinterDnDCTk):
         
         # Design alignment and styling based on sender
         if sender.lower() == "user":
-            bubble_color = "#e1e1e1" if ctk.get_appearance_mode() == "Light" else "#2b2b2b"
-            text_color = "black" if ctk.get_appearance_mode() == "Light" else "white"
+            bubble_color = "#E2E8F0"
+            text_color = "#1E293B"
             
             bubble = ctk.CTkFrame(row_frame, fg_color=bubble_color, corner_radius=12)
             bubble.pack(side="right", anchor="e")
             
-            label = ctk.CTkLabel(bubble, text=text, text_color=text_color, font=("Segoe UI", 12),
+            label = ctk.CTkLabel(bubble, text=text, text_color=text_color, font=("Segoe UI", 13),
                                  wraplength=220, justify="left")
             label.pack(padx=12, pady=8)
         else:
-            bubble_color = "#1f538d"
+            bubble_color = "#3B82F6"
             text_color = "white"
             
             bubble = ctk.CTkFrame(row_frame, fg_color=bubble_color, corner_radius=12)
             bubble.pack(side="left", anchor="w")
             
-            label = ctk.CTkLabel(bubble, text=text, text_color=text_color, font=("Segoe UI", 12),
+            label = ctk.CTkLabel(bubble, text=text, text_color=text_color, font=("Segoe UI", 13),
                                  wraplength=220, justify="left")
             label.pack(padx=12, pady=8)
             
