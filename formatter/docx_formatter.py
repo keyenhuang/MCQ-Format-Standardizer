@@ -1,28 +1,85 @@
 import re
 import copy
+from dataclasses import replace
 from docx import Document
+from docx.oxml import OxmlElement
 
-def _build_options_line(options):
-    """'Options: A) ... | B) ... | C) ... | D) ...'"""
-    return "Options: " + " | ".join(options)
+from parser.models import Question
+from logger import get_logger
+
+logger = get_logger()
+
+LINE_HEIGHT_PX = 22
+BUBBLE_PADDING = 20
+
 
 def renumber_questions(questions, start: int = 1):
-    """Return a new list of questions with sequentially reassigned `num`."""
-    new = []
-    for i, q in enumerate(questions, start=start):
-        nq = q.copy()
-        nq['num'] = i
-        new.append(nq)
-    return new
+    return [replace(q, num=i) for i, q in enumerate(questions, start=start)]
 
-def build_output_document(questions):
-    """Create a python-docx Document using the standard MCQ template structure."""
-    questions = renumber_questions(questions, start=1)
-    doc = Document()
 
+def _add_run_with_text(paragraph, text, bold=False):
+    run = paragraph.add_run(text)
+    if bold:
+        run.bold = True
+    return run
+
+
+def _extract_answer_letter(answer_text):
+    if not answer_text:
+        return ""
+    m = re.match(r'^Answer:\s*([A-H])(?:\)|\]|\.|\s|$)', answer_text, re.IGNORECASE)
+    if m:
+        return m.group(1).upper()
+    m2 = re.search(r'\b([A-H])\b', answer_text.replace('Answer:', ''), re.IGNORECASE)
+    return m2.group(1).upper() if m2 else ""
+
+
+def _append_xml_elements(paragraph, elements):
+    for child in elements:
+        paragraph._element.append(copy.deepcopy(child))
+
+
+def _remove_default_paragraph(doc):
     if doc.paragraphs and doc.paragraphs[0].text == '':
         p = doc.paragraphs[0]
         p._element.getparent().remove(p._element)
+
+
+def _add_option_paragraphs(doc, q, normal):
+    if q.options_xml:
+        for letter, opt_elements in q.options_xml:
+            p_opt = doc.add_paragraph(style=normal)
+            _add_run_with_text(p_opt, f"{letter}. ")
+            _append_xml_elements(p_opt, opt_elements)
+    else:
+        for opt in q.options:
+            opt_match = re.match(r'^([A-H])\)\s*(.*)', opt, re.IGNORECASE)
+            if opt_match:
+                doc.add_paragraph(f"{opt_match.group(1).upper()}. {opt_match.group(2)}", style=normal)
+            else:
+                doc.add_paragraph(opt, style=normal)
+
+
+def _add_answer_paragraph(doc, q, normal, ans_letter):
+    if ans_letter:
+        doc.add_paragraph(f"Answer: {ans_letter}", style=normal)
+    else:
+        doc.add_paragraph(q.answer, style=normal)
+
+
+def _add_question_paragraph(doc, q, normal):
+    p_q = doc.add_paragraph(style=normal)
+    _add_run_with_text(p_q, f"{q.num}. ")
+    if q.question_xml:
+        _append_xml_elements(p_q, q.question_xml)
+    else:
+        _add_run_with_text(p_q, q.question)
+
+
+def build_output_document(questions):
+    questions = renumber_questions(questions, start=1)
+    doc = Document()
+    _remove_default_paragraph(doc)
 
     try:
         normal = doc.styles['Normal']
@@ -30,45 +87,11 @@ def build_output_document(questions):
         normal = None
 
     for i, q in enumerate(questions):
-        p_q = doc.add_paragraph(style=normal)
-        p_q.add_run(f"{q['num']}. ")
-        
-        if 'question_xml' in q and q['question_xml']:
-            for child in q['question_xml']:
-                p_q._element.append(copy.deepcopy(child))
-        else:
-            p_q.add_run(q['question'])
+        _add_question_paragraph(doc, q, normal)
+        _add_option_paragraphs(doc, q, normal)
 
-        if 'options_xml' in q and q['options_xml']:
-            for letter, opt_elements in q['options_xml']:
-                p_opt = doc.add_paragraph(style=normal)
-                p_opt.add_run(f"{letter}. ")
-                for child in opt_elements:
-                    p_opt._element.append(copy.deepcopy(child))
-        else:
-            for opt in q['options']:
-                opt_match = re.match(r'^([A-H])\)\s*(.*)', opt, re.IGNORECASE)
-                if opt_match:
-                    letter = opt_match.group(1).upper()
-                    body = opt_match.group(2)
-                    doc.add_paragraph(f"{letter}. {body}", style=normal)
-                else:
-                    doc.add_paragraph(opt, style=normal)
-
-        ans_letter = ""
-        if q['answer']:
-            m = re.match(r'^Answer:\s*([A-H])(?:\)|\]|\.|\s|$)', q['answer'], re.IGNORECASE)
-            if m:
-                ans_letter = m.group(1).upper()
-            else:
-                m2 = re.search(r'\b([A-H])\b', q['answer'].replace('Answer:', ''), re.IGNORECASE)
-                if m2:
-                    ans_letter = m2.group(1).upper()
-        
-        if ans_letter:
-            doc.add_paragraph(f"Answer: {ans_letter}", style=normal)
-        else:
-            doc.add_paragraph(q['answer'], style=normal)
+        ans_letter = _extract_answer_letter(q.answer)
+        _add_answer_paragraph(doc, q, normal, ans_letter)
 
         if i < len(questions) - 1:
             doc.add_paragraph('', style=normal)
