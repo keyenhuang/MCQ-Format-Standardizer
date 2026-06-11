@@ -24,33 +24,6 @@ class TkinterDnDCTk(ctk.CTk, TkinterDnD.DnDWrapper):
         self.TkdndVersion = TkinterDnD._require(self)
 
 
-class FileItemFrame(ctk.CTkFrame):
-    def __init__(self, parent, filepath: Path, on_remove, **kwargs):
-        super().__init__(parent, fg_color="transparent", **kwargs)
-        self.filepath = filepath
-
-        self.label = ctk.CTkLabel(
-            self, text=filepath.name,
-            font=("Segoe UI", 12), text_color="#1E293B",
-            anchor="w"
-        )
-        self.label.pack(side="left", fill="x", expand=True, padx=(8, 4), pady=2)
-
-        self.remove_btn = ctk.CTkButton(
-            self, text="✕", width=28, height=28,
-            fg_color="transparent", hover_color="#FEE2E2",
-            text_color="#EF4444", font=("Segoe UI", 14, "bold"),
-            corner_radius=6,
-            command=self._on_remove
-        )
-        self.remove_btn.pack(side="right", padx=(4, 8), pady=2)
-
-        self.on_remove = on_remove
-
-    def _on_remove(self):
-        self.on_remove(self.filepath)
-
-
 class MCQConverterApp(TkinterDnDCTk):
     def __init__(self):
         super().__init__()
@@ -67,10 +40,6 @@ class MCQConverterApp(TkinterDnDCTk):
         self.input_files: List[Path] = []
         self.setup_ui()
         self.setup_dnd()
-        self.after_idle(self._remeasure_file_list)
-
-    def _remeasure_file_list(self):
-        pass
 
     # --- UI Setup ---
 
@@ -87,7 +56,7 @@ class MCQConverterApp(TkinterDnDCTk):
 
         self._build_header()
         self._build_drop_zone()
-        self._build_file_list()
+        self._build_file_info()
         self._build_mode_selector()
         self._build_action_buttons()
         self._build_progress()
@@ -124,37 +93,31 @@ class MCQConverterApp(TkinterDnDCTk):
         self.drop_label.pack(expand=True, fill="both")
         self.drop_label.bind("<Button-1>", lambda e: self.choose_files())
 
-    def _build_file_list(self):
-        self.file_list_container = ctk.CTkScrollableFrame(
-            self.left_frame, fg_color="transparent", height=90
+    def _build_file_info(self):
+        self.file_info_var = ctk.StringVar(value="No files selected")
+        self.file_info_label = ctk.CTkLabel(
+            self.left_frame, textvariable=self.file_info_var,
+            font=("Segoe UI", 11, "italic"), wraplength=480
         )
-        self.file_list_container.pack(fill="x", padx=10, pady=(0, 5))
-        self.file_list_container.pack_propagate(False)
+        self.file_info_label.pack(pady=5)
+        self.file_info_label.bind("<Button-1>", lambda e: self.choose_files())
 
-    def _rebuild_file_list_ui(self):
-        for widget in self.file_list_container.winfo_children():
-            widget.destroy()
-
+    def _update_file_info(self):
         if not self.input_files:
-            info_label = ctk.CTkLabel(
-                self.file_list_container, text="No files selected",
-                font=("Segoe UI", 11, "italic"), text_color="#94A3B8"
-            )
-            info_label.pack(pady=10)
+            self.file_info_var.set("No files selected")
             self.drop_frame.configure(border_color="#3B82F6")
             self.convert_btn.configure(state="disabled")
         else:
-            for fp in self.input_files:
-                item = FileItemFrame(self.file_list_container, fp, on_remove=self.remove_file)
-                item.pack(fill="x", pady=1)
+            names = ", ".join(f.name for f in self.input_files)
+            if len(names) > 60:
+                names = names[:57] + "..."
+            self.file_info_var.set(
+                f"Selected {len(self.input_files)} files: {names}"
+                if len(self.input_files) > 1
+                else f"Selected: {self.input_files[0].name}"
+            )
             self.drop_frame.configure(border_color="green")
             self.convert_btn.configure(state="normal")
-
-        self.file_info_var.set(
-            f"Selected {len(self.input_files)} files."
-            if len(self.input_files) != 1
-            else f"Selected: {self.input_files[0].name}"
-        )
         self.status_var.set(
             f"Ready to convert {len(self.input_files)} files."
             if self.input_files else "Ready"
@@ -204,10 +167,18 @@ class MCQConverterApp(TkinterDnDCTk):
         self.clear_btn.pack(side="left", padx=10)
 
     def _build_progress(self):
+        self.progress_frame = ctk.CTkFrame(self.left_frame, fg_color="transparent")
         self.progress_bar = ctk.CTkProgressBar(
-            self.left_frame, height=12, corner_radius=6,
+            self.progress_frame, height=12, corner_radius=6,
             progress_color="#10B981"
         )
+        self.progress_bar.pack(side="left", fill="x", expand=True)
+        self.progress_percent_var = ctk.StringVar(value="0%")
+        self.progress_percent_label = ctk.CTkLabel(
+            self.progress_frame, textvariable=self.progress_percent_var,
+            font=("Segoe UI", 12, "bold"), text_color="#10B981", width=40
+        )
+        self.progress_percent_label.pack(side="right", padx=(8, 0))
 
     def _build_status(self):
         self.status_var = ctk.StringVar(value="Ready")
@@ -271,7 +242,7 @@ class MCQConverterApp(TkinterDnDCTk):
         for p in paths:
             if p not in self.input_files:
                 self.input_files.append(p)
-        self._rebuild_file_list_ui()
+        self._update_file_info()
 
         mode = self.mode_var.get()
         mode_str = "Standardize Format" if mode == "standard" else "Only Renumber"
@@ -283,15 +254,10 @@ class MCQConverterApp(TkinterDnDCTk):
         ]
         self.sidebar.add_chat_message("Copilot", msg, actions=actions)
 
-    def remove_file(self, filepath: Path):
-        self.input_files = [f for f in self.input_files if f != filepath]
-        self._rebuild_file_list_ui()
-        self.sidebar.add_chat_message("Copilot", f"Removed from queue: {filepath.name}")
-
     def clear_selection(self, notify=True):
         self.input_files = []
-        self._rebuild_file_list_ui()
-        self.progress_bar.pack_forget()
+        self._update_file_info()
+        self.progress_frame.pack_forget()
         if notify:
             self.sidebar.add_chat_message("Copilot", "File queue cleared.")
 
@@ -320,8 +286,9 @@ class MCQConverterApp(TkinterDnDCTk):
         self.convert_btn.configure(state="disabled")
         self.clear_btn.configure(state="disabled")
 
-        self.progress_bar.pack(pady=10, before=self.status_label)
+        self.progress_frame.pack(fill="x", padx=10, pady=10, before=self.status_label)
         self.progress_bar.set(0)
+        self.progress_percent_var.set("0%")
 
         mode = self.mode_var.get()
         mode_str = "Standardize Format" if mode == "standard" else "Only Renumber"
@@ -346,7 +313,8 @@ class MCQConverterApp(TkinterDnDCTk):
             self.after(0, lambda idx=i+1, name=inp.name: self.status_var.set(
                 f"Processing ({idx}/{total}): {name}"
             ))
-            self.after(0, lambda v=i/total: self.progress_bar.set(v))
+            pct = int((i / total) * 100)
+            self.after(0, lambda v=i/total, p=pct: (self.progress_bar.set(v), self.progress_percent_var.set(f"{p}%")))
 
             try:
                 ext = inp.suffix.lower()
@@ -395,7 +363,7 @@ class MCQConverterApp(TkinterDnDCTk):
                     "error_msg": str(e)
                 })
 
-        self.after(0, lambda: self.progress_bar.set(1.0))
+        self.after(0, lambda: (self.progress_bar.set(1.0), self.progress_percent_var.set("100%")))
 
         if failed_files:
             err_lines = [f"{name}: {err}" for name, err in failed_files[:5]]
@@ -426,7 +394,7 @@ class MCQConverterApp(TkinterDnDCTk):
         self.status_var.set("An error occurred.")
         self.convert_btn.configure(state="normal")
         self.clear_btn.configure(state="normal")
-        self.progress_bar.pack_forget()
+        self.progress_frame.pack_forget()
 
     def finish_batch(self, success, total, batch_details):
         self.status_var.set(f"Done! {success}/{total} files converted.")
@@ -448,4 +416,4 @@ class MCQConverterApp(TkinterDnDCTk):
         self.sidebar.add_chat_message("Copilot", "\n".join(lines))
         self.clear_selection(notify=False)
         self.clear_btn.configure(state="normal")
-        self.progress_bar.pack_forget()
+        self.progress_frame.pack_forget()
