@@ -1,0 +1,1 @@
+from formatter.docx_formatter import build_output_document
