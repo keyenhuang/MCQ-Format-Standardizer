@@ -859,7 +859,7 @@ class MCQConverterApp(TkinterDnDCTk):
         bubble.pack(side=anchor_side, anchor=anchor_align)
         
         textbox = ctk.CTkTextbox(bubble, text_color=text_color, fg_color="transparent", 
-                                 font=("Segoe UI", 13), wrap="word", width=250)
+                                 font=("Segoe UI", 13), wrap="word", width=300)
         textbox.pack(padx=10, pady=(6, 6))
         
         # Insert text temporarily to calculate exact required height
@@ -870,13 +870,43 @@ class MCQConverterApp(TkinterDnDCTk):
         display_lines_tuple = textbox._textbox.count("1.0", "end-1c", "displaylines")
         num_lines = display_lines_tuple[0] if display_lines_tuple else 1
         
-        # Calculate exact height: ~20px per line for Segoe UI 13, plus internal padding
-        exact_height = num_lines * 20 + 15
+        # Calculate exact height: ~22px per line for Segoe UI 13, plus generous padding
+        exact_height = num_lines * 22 + 20
         textbox.configure(height=exact_height)
         
-        # Hide the internal scrollbar to prevent visual clutter
+        # Deferred re-measure: after layout settles, recalculate height to catch any mismatch
+        def _remeasure(tb=textbox):
+            try:
+                if not tb.winfo_exists():
+                    return
+                tb.update_idletasks()
+                dl = tb._textbox.count("1.0", "end-1c", "displaylines")
+                n = dl[0] if dl else 1
+                h = n * 22 + 20
+                if h != tb.cget("height"):
+                    tb.configure(height=h)
+            except Exception:
+                pass
+        self.after(100, _remeasure)
+        
+        # Aggressively remove the internal scrollbar so bubbles never show a scroll control
+        try:
+            textbox.configure(scrollbar_button_color=bubble_color, scrollbar_button_hover_color=bubble_color)
+        except Exception:
+            pass
         if hasattr(textbox, '_scrollbar') and textbox._scrollbar:
-            textbox._scrollbar.grid_forget()
+            try:
+                textbox._scrollbar.destroy()
+            except Exception:
+                try:
+                    textbox._scrollbar.grid_forget()
+                except Exception:
+                    pass
+        # Disable internal scrolling on the underlying tk Text widget
+        try:
+            textbox._textbox.configure(yscrollcommand=lambda *a: None)
+        except Exception:
+            pass
             
         # Prevent internal scrolling and pass the mouse wheel event to the parent scrollable frame
         def _on_mousewheel(event):
@@ -885,6 +915,9 @@ class MCQConverterApp(TkinterDnDCTk):
             return "break"
             
         textbox._textbox.bind("<MouseWheel>", _on_mousewheel)
+        # Also block keyboard-based scrolling
+        for seq in ("<Up>", "<Down>", "<Prior>", "<Next>"):
+            textbox._textbox.bind(seq, lambda e: "break")
         
         if animate:
             textbox.delete("0.0", "end")
@@ -917,6 +950,16 @@ class MCQConverterApp(TkinterDnDCTk):
                 ui_element.configure(state="normal")
                 ui_element.insert("end", full_text[index])
                 ui_element.configure(state="disabled")
+                # Periodically resize height during animation so the bubble grows with the content
+                if index % 10 == 0 or index == len(full_text) - 1:
+                    try:
+                        ui_element.update_idletasks()
+                        dl = ui_element._textbox.count("1.0", "end-1c", "displaylines")
+                        n = dl[0] if dl else 1
+                        h = n * 22 + 20
+                        ui_element.configure(height=h)
+                    except Exception:
+                        pass
             else:
                 ui_element.configure(text=full_text[:index+1])
             self.chat_scroll_frame._parent_canvas.yview_moveto(1.0)
