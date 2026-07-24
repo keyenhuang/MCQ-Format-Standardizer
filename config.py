@@ -60,7 +60,7 @@ def get_config():
 
     if keyring:
         try:
-            stored_key = keyring.get_password("MCQConverterApp", "API_KEY")
+            stored_key = keyring.get_password("MCQFormatStandardizer", "API_KEY")
             if stored_key:
                 config["API_KEY"] = stored_key.strip()
         except Exception as e:
@@ -79,7 +79,7 @@ def save_config_value(key_name, value):
 
     if key_name == "API_KEY" and keyring:
         try:
-            keyring.set_password("MCQConverterApp", "API_KEY", value_stripped)
+            keyring.set_password("MCQFormatStandardizer", "API_KEY", value_stripped)
             _remove_from_json_file("API_KEY")
             if _CONFIG_CACHE is not None:
                 _CONFIG_CACHE["API_KEY"] = value_stripped

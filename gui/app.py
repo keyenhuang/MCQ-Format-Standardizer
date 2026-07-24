@@ -24,11 +24,11 @@ class TkinterDnDCTk(ctk.CTk, TkinterDnD.DnDWrapper):
         self.TkdndVersion = TkinterDnD._require(self)
 
 
-class MCQConverterApp(TkinterDnDCTk):
+class MCQFormatStandardizerApp(TkinterDnDCTk):
     def __init__(self):
         super().__init__()
 
-        self.title("MCQ Batch Converter Pro")
+        self.title("MCQ Format Standardizer")
         self.geometry("960x650")
         self.minsize(800, 550)
         self.resizable(True, True)
@@ -66,13 +66,13 @@ class MCQConverterApp(TkinterDnDCTk):
 
     def _build_header(self):
         header = ctk.CTkLabel(
-            self.left_frame, text="MCQ Converter",
+            self.left_frame, text="MCQ Format Standardizer",
             font=("Segoe UI", 26, "bold"), text_color="#1E293B"
         )
         header.pack(pady=(10, 5))
 
         subheader = ctk.CTkLabel(
-            self.left_frame, text="Advanced Batch Processing (Supports formulas)",
+            self.left_frame, text="Advanced Batch MCQ Processing (Supports formulas)",
             font=("Segoe UI", 13), text_color="#64748B"
         )
         subheader.pack(pady=(0, 10))
@@ -273,14 +273,14 @@ class MCQConverterApp(TkinterDnDCTk):
                 title="Save Converted File",
                 defaultextension=".docx",
                 initialdir=str(input_file.parent),
-                initialfile=input_file.stem + "_MCQ.docx",
+                initialfile=input_file.stem + "_standardized.docx",
                 filetypes=[("Word Document", "*.docx")]
             )
             if not output_path:
                 return
             targets = [(input_file, Path(output_path))]
         else:
-            targets = [(f, f.with_name(f.stem + "_MCQ.docx")) for f in self.input_files]
+            targets = [(f, f.with_name(f.stem + "_standardized.docx")) for f in self.input_files]
 
         self.status_var.set("Converting...")
         self.convert_btn.configure(state="disabled")

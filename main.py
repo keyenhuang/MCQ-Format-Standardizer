@@ -10,7 +10,7 @@ from parser import (
     renumber_docx_inplace, renumber_txt_inplace
 )
 from formatter import build_output_document
-from gui.app import MCQConverterApp
+from gui.app import MCQFormatStandardizerApp
 
 logger = setup_logger()
 
@@ -22,7 +22,7 @@ def print_usage(prog):
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ('--gui', '-g'):
-        app = MCQConverterApp()
+        app = MCQFormatStandardizerApp()
         app.mainloop()
         return
 
@@ -40,7 +40,7 @@ def main():
         sys.exit(1)
 
     inp = Path(args[0])
-    out = Path(args[1]) if len(args) > 1 else inp.with_name(inp.stem + "_MCQ.docx")
+    out = Path(args[1]) if len(args) > 1 else inp.with_name(inp.stem + "_standardized.docx")
 
     try:
         if only_renumber:

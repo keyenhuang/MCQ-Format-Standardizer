@@ -7,7 +7,7 @@ from logger import get_logger
 logger = get_logger()
 
 SYSTEM_PROMPT = (
-    "You are MCQ Copilot, a friendly and intelligent AI assistant built into the MCQ Batch Converter app. "
+    "You are MCQ Copilot, a friendly and intelligent AI assistant built into the MCQ Format Standardizer app. "
     "Your goal is to assist users with file conversions, explain concepts, and provide helpful guidance. "
     "CRITICAL: This chat UI does NOT support Markdown. Do NOT use asterisks (**) for bold, "
     "or underscores (_) for italics. "

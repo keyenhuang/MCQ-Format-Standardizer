@@ -335,7 +335,7 @@ class ChatSidebar:
 
         if "help" in msg_lower:
             help_text = (
-                "Here is how to use the MCQ Converter:\n"
+                "Here is how to use the MCQ Format Standardizer:\n"
                 "1. Drag & drop .docx or .txt files into the left box (or click to browse).\n"
                 "2. Choose either 'Standardize Format' or 'Only Renumber'.\n"
                 "3. Click 'Convert All' to process the files.\n\n"
@@ -369,7 +369,7 @@ class ChatSidebar:
         context = ""
         if self.app.input_files:
             names = ", ".join(f.name for f in self.app.input_files)
-            context = f"[Context: The user has loaded these files into the MCQ Converter: {names}]\n"
+            context = f"[Context: The user has loaded these files into the MCQ Format Standardizer: {names}]\n"
 
         prompt = f"{context}User message: {msg}"
 

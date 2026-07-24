@@ -1,7 +1,7 @@
 import logging
 import sys
 
-LOGGER_NAME = "MCQConverter"
+LOGGER_NAME = "MCQFormatStd"
 
 
 def setup_logger(level=logging.INFO):
