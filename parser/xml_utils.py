@@ -19,7 +19,7 @@ def create_br_xml():
     return r
 
 
-def get_para_xml_elements(para):
+def get_para_xml_elements(para) -> list:
     elements = []
     for child in para._p:
         if child.tag.endswith('}pPr'):
@@ -28,7 +28,7 @@ def get_para_xml_elements(para):
     return elements
 
 
-def strip_xml_prefix(elements, count):
+def strip_xml_prefix(elements: list, count: int) -> None:
     if count <= 0:
         return
     for elem in elements:
@@ -43,7 +43,7 @@ def strip_xml_prefix(elements, count):
                 count -= node_len
 
 
-def split_xml_elements_by_separator(elements, sep="|"):
+def split_xml_elements_by_separator(elements: list, sep: str = "|") -> list:
     options_xml = []
     current_xml = []
 
@@ -100,7 +100,7 @@ def split_xml_elements_by_separator(elements, sep="|"):
     return options_xml
 
 
-def get_paragraph_text_with_math(para):
+def get_paragraph_text_with_math(para) -> str:
     text_parts = []
     for elem in para._element.iter():
         if elem.tag.endswith('}t'):
@@ -108,7 +108,7 @@ def get_paragraph_text_with_math(para):
     return "".join(text_parts)
 
 
-def count_math_formulas(questions):
+def count_math_formulas(questions: list) -> int:
     math_count = 0
     for q in questions:
         if q.question_xml:

@@ -2,7 +2,9 @@ import sys
 import traceback
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.absolute()))
+_PACKAGE_ROOT = Path(__file__).parent.absolute()
+if str(_PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PACKAGE_ROOT))
 
 from logger import setup_logger, get_logger
 from parser import (
