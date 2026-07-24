@@ -37,7 +37,7 @@ A comprehensive tool for converting and standardizing MCQ (Multiple Choice Quest
 
 ## Technology Stack
 
-- **Python 3.7+**: Core programming language
+- **Python 3.10+**: Core programming language
 - **Tkinter/CTkinter**: GUI framework
 - **python-docx**: Word document manipulation
 - **keyring**: Secure password management

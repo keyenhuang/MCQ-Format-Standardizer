@@ -318,7 +318,7 @@ class ChatSidebar:
                 return
 
         if "convert" in msg_lower:
-            if not self.app.input_files:
+            if self.app.file_manager.count == 0:
                 self.queue.put((
                     "text",
                     "You haven't selected any files yet! "
@@ -327,7 +327,7 @@ class ChatSidebar:
             else:
                 self.queue.put((
                     "text",
-                    f"Starting conversion for {len(self.app.input_files)} file(s)..."
+                    f"Starting conversion for {self.app.file_manager.count} file(s)..."
                 ))
                 self.app.after(0, self.app.start_conversion)
             self.queue.put(("done", None))
@@ -367,9 +367,9 @@ class ChatSidebar:
             return
 
         context = ""
-        if self.app.input_files:
-            names = ", ".join(f.name for f in self.app.input_files)
-            context = f"[Context: The user has loaded these files into the MCQ Format Standardizer: {names}]\n"
+        if self.app.file_manager.count > 0:
+            names = ", ".join(f.name for f in self.app.file_manager.input_files)
+            context = f"[Context: The user has loaded these files into th
 
         prompt = f"{context}User message: {msg}"
 

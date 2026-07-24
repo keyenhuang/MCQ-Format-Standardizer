@@ -2,7 +2,7 @@ import threading
 from pathlib import Path
 from typing import List, Tuple, Callable
 
-from parser import parse_docx, parse_txt, renumber_docx_inplace, renumber_txt_inplace, count_math_formulas
+from parser import parse_docx, parse_txt, renumber_docx_inplace, renumber_txt_inplace, count_math_formulas, diagnose_error
 from formatter import build_output_document
 from logger import get_logger
 
@@ -49,7 +49,8 @@ def run_conversion(targets: List[Tuple[Path, Path]], mode: str,
                             inp.name, "error", error_msg="No questions found"))
             except (OSError, ValueError, ImportError) as e:
                 logger.exception("Error processing %s", inp.name)
-                results.append(ConversionResult(inp.name, "error", error_msg=str(e)))
+                diagnostic = diagnose_error(str(e))
+                results.append(ConversionResult(inp.name, "error", error_msg=f"{e}\n\n{diagnostic}"))
         on_complete(results)
 
     threading.Thread(target=_run, daemon=True).start()

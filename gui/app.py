@@ -1,12 +1,10 @@
-import threading
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
 
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 from tkinterdnd2 import TkinterDnD, DND_FILES
 
-from parser import parse_docx, parse_txt, renumber_docx_inplace, renumber_txt_inplace, count_math_formulas, diagnose_error
+from parser import parse_docx, parse_txt, renumber_docx_inplace, renumber_txt_inplace, count_math_formulas
 from formatter import build_output_document
 from gui.chat_sidebar import ChatSidebar
 from gui.drop_zone import DropZone

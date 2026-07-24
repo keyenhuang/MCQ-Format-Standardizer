@@ -6,8 +6,7 @@ from tkinterdnd2 import DND_FILES
 
 
 class DropZone(ctk.CTkFrame):
-    def __init__(self, parent, on_files_dropped: Callable[[List[Path]], None],
-                 has_files: bool = False, **kwargs):
+    def __init__(self, parent, on_files_dropped: Callable[[List[Path]], None], **kwargs):
         super().__init__(parent, height=120, border_width=2,
                          border_color="#3B82F6", fg_color="#F8FAFC",
                          corner_radius=12, **kwargs)
