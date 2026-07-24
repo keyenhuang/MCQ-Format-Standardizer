@@ -75,7 +75,6 @@ def get_config():
 
 
 def save_config_value(key_name, value):
-    global _CONFIG_CACHE
     config = get_config()
     value_stripped = value.strip() if isinstance(value, str) else value
 

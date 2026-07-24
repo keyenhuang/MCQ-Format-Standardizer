@@ -369,7 +369,7 @@ class ChatSidebar:
         context = ""
         if self.app.file_manager.count > 0:
             names = ", ".join(f.name for f in self.app.file_manager.input_files)
-            context = f"[Context: The user has loaded these files into th
+            context = f"[Context: The user has loaded these files into the MCQ Format Standardizer: {names}]\n"
 
         prompt = f"{context}User message: {msg}"
 
