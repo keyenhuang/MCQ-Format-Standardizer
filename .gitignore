@@ -19,10 +19,10 @@ config.json
 .antigravitycli/
 .gemini/
 
-# Data and outputs
-*.docx
-*.txt
-*.doc
+# Output files (optional, uncomment to track)
+# *.docx
+# *.txt
+# *.doc
 
 # OS generated files
 .DS_Store
