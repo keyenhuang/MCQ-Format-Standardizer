@@ -1,5 +1,9 @@
 # MCQ Format Standardizer
 
+[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)]()
+[![CI](https://github.com/keyenhuang/MCQ-Format-Standardizer/actions/workflows/ci.yml/badge.svg)](https://github.com/keyenhuang/MCQ-Format-Standardizer/actions/workflows/ci.yml)
+
 A comprehensive tool for converting and standardizing MCQ (Multiple Choice Question) documents from various formats into a consistent, editable format suitable for educational and assessment purposes.
 
 ## Overview
@@ -290,7 +294,7 @@ pip install -r requirements.txt
 
 ## License
 
-
+[MIT License](LICENSE)
 
 ## Contact
 
@@ -306,6 +310,4 @@ Special thanks to all contributors and users who have helped improve this applic
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: 2026-07-24  
-**License**: MIT  
 **Author**: keyenhuang
