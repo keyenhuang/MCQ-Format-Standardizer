@@ -151,7 +151,7 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
             self.button_frame, text="Convert All",
             command=self.start_conversion, state="disabled",
             fg_color=("#F97316", "#EA580C"), hover_color=("#EA580C", "#C2410C"),
-            disabled_color=("#CBD5E1", "#334155"), disabled_text_color=("#64748B", "#94A3B8"),
+            text_color_disabled=("#64748B", "#94A3B8"),
             text_color="white", font=("Segoe UI", 15, "bold"), corner_radius=8
         )
         self.convert_btn.pack(side="left", padx=10)
