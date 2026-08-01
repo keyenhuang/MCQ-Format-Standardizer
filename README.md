@@ -25,12 +25,16 @@ A modern, high-performance desktop application for batch parsing, standardizing,
 
 ## 🖥️ UI Overview & CustomTkinter Modernization
 
+![MCQ Format Standardizer Desktop Application UI Preview](assets/gui_preview.png)
+
 The application UI leverages CustomTkinter for a sleek, responsive user experience:
 
 - **Theme Mode Switcher**: Seamlessly toggle between **System**, **Light**, and **Dark** appearance modes.
-- **Segmented Control**: Easily switch between `Standardize Format` and `Only Renumber` conversion modes.
-- **Drag & Drop Card**: Reactive drop zone with visual color feedback on file hover and drop.
-- **Copilot Sidebar**: Chat sidebar with streamed token animations, thinking indicators, and quick action chips.
+- **Segmented Control**: Easily switch between `Full Standardization` and `Renumber Only` conversion modes.
+- **Unambiguous Controls**: Explicit `Output Format` (`Word Doc`, `Moodle GIFT`, `JSON Data`) and `Answer Location` (`Below Each Question`, `Separate Section at End`) selections.
+- **Reactive Drag & Drop Card**: File drop zone with dynamic color feedback on hover and load.
+- **Copilot Assistant Sidebar**: Chat sidebar with initial command guide, streamed LLM answers, thinking indicators, and slash commands (`/apikey`, `/explain`).
+
 
 ---
 
