@@ -145,3 +145,22 @@ class TestDiagnoseError(unittest.TestCase):
     def test_unknown_error(self):
         msg = diagnose_error("Something unexpected happened")
         assert "Unknown Conversion" in msg
+
+
+class TestExporters(unittest.TestCase):
+    def test_json_exporter(self):
+        from parser.models import Question
+        from formatter import export_to_json
+        q = Question(num=1, question="Sample?", options=["A) 1", "B) 2"], answer="Answer: A", explanation="Sample exp")
+        json_out = export_to_json([q])
+        assert "Sample?" in json_out
+        assert "Sample exp" in json_out
+
+    def test_gift_exporter(self):
+        from parser.models import Question
+        from formatter import export_to_gift
+        q = Question(num=1, question="Sample?", options=["A) 1", "B) 2"], answer="Answer: A")
+        gift_out = export_to_gift([q])
+        assert "::Q1:: Sample?" in gift_out
+        assert "=1" in gift_out
+

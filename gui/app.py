@@ -118,7 +118,7 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
 
     def _build_mode_selector(self):
         self.mode_frame = ctk.CTkFrame(self.left_frame, fg_color="transparent")
-        self.mode_frame.pack(pady=10)
+        self.mode_frame.pack(pady=8)
 
         self.mode_var = ctk.StringVar(value="standard")
 
@@ -140,7 +140,29 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
             font=("Segoe UI", 13, "bold"), corner_radius=10
         )
         self.seg_button.set("Standardize Format")
-        self.seg_button.pack(padx=10, pady=5)
+        self.seg_button.pack(padx=10, pady=(5, 8))
+
+        options_row = ctk.CTkFrame(self.mode_frame, fg_color="transparent")
+        options_row.pack(fill="x", pady=2)
+
+        ctk.CTkLabel(options_row, text="Format:", font=("Segoe UI", 11, "bold"), text_color=("#475569", "#CBD5E1")).pack(side="left", padx=(5, 2))
+        self.export_format_var = ctk.StringVar(value="DOCX (.docx)")
+        self.format_menu = ctk.CTkOptionMenu(
+            options_row, variable=self.export_format_var,
+            values=["DOCX (.docx)", "Moodle GIFT (.gift)", "JSON (.json)"],
+            width=120, height=26, font=("Segoe UI", 11)
+        )
+        self.format_menu.pack(side="left", padx=(0, 15))
+
+        ctk.CTkLabel(options_row, text="Answers:", font=("Segoe UI", 11, "bold"), text_color=("#475569", "#CBD5E1")).pack(side="left", padx=(5, 2))
+        self.answer_pos_var = ctk.StringVar(value="Below Question")
+        self.pos_menu = ctk.CTkOptionMenu(
+            options_row, variable=self.answer_pos_var,
+            values=["Below Question", "End of Document"],
+            width=135, height=26, font=("Segoe UI", 11)
+        )
+        self.pos_menu.pack(side="left")
+
 
 
     def _build_action_buttons(self):
@@ -211,20 +233,36 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         if self.file_manager.count == 0:
             return
 
+        fmt_str = self.export_format_var.get()
+        if "JSON" in fmt_str:
+            fmt_ext = "json"
+            def_ext = ".json"
+            ftypes = [("JSON File", "*.json")]
+        elif "GIFT" in fmt_str:
+            fmt_ext = "gift"
+            def_ext = ".gift"
+            ftypes = [("Moodle GIFT Text", "*.gift")]
+        else:
+            fmt_ext = "docx"
+            def_ext = ".docx"
+            ftypes = [("Word Document", "*.docx")]
+
+        answers_at_bottom = (self.answer_pos_var.get() == "End of Document")
+
         files = self.file_manager.input_files
         if len(files) == 1:
             output_path = filedialog.asksaveasfilename(
                 title="Save Converted File",
-                defaultextension=".docx",
+                defaultextension=def_ext,
                 initialdir=str(files[0].parent),
-                initialfile=files[0].stem + "_standardized.docx",
-                filetypes=[("Word Document", "*.docx")]
+                initialfile=files[0].stem + f"_standardized{def_ext}",
+                filetypes=ftypes
             )
             if not output_path:
                 return
             targets = [(files[0], Path(output_path))]
         else:
-            targets = [(f, f.with_name(f.stem + "_standardized.docx")) for f in files]
+            targets = [(f, f.with_name(f.stem + f"_standardized{def_ext}")) for f in files]
 
         self.status_var.set("Converting...")
         self.convert_btn.configure(state="disabled")
@@ -237,14 +275,17 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         mode_str = "Standardize Format" if mode == "standard" else "Only Renumber"
         file_list = ", ".join(f"{f.name}" for f, _ in targets)
         self.sidebar.add_chat_message(
-            "Copilot", f"Starting conversion for:\n- {file_list}\n\n(Mode: {mode_str})"
+            "Copilot", f"Starting conversion for:\n- {file_list}\n\n(Mode: {mode_str}, Format: {fmt_ext.upper()})"
         )
 
         run_conversion(
             targets, mode,
             on_progress=self._on_conversion_progress,
-            on_complete=lambda results: self.after(0, lambda: self._on_conversion_complete(results))
+            on_complete=lambda results: self.after(0, lambda: self._on_conversion_complete(results)),
+            export_format=fmt_ext,
+            answers_at_bottom=answers_at_bottom
         )
+
 
     def _on_conversion_progress(self, current, total):
         pct = int((current / total) * 100)

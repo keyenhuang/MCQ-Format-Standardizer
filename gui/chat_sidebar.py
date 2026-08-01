@@ -304,6 +304,22 @@ class ChatSidebar:
             self.queue.put(("done", None))
             return
 
+        if msg.startswith("/explain"):
+            prompt = (
+                "Please generate detailed, step-by-step explanations for the active questions in the current document. "
+                "For each question, state the correct answer clearly and provide a concise explanation."
+            )
+            context = ""
+            if self.app.file_manager.count > 0:
+                names = ", ".join(f.name for f in self.app.file_manager.input_files)
+                context = f"[Context: Loaded files: {names}]\n"
+            full_prompt = f"{context}{prompt}"
+            for token in call_llm_api_stream(full_prompt, config):
+                self.queue.put(("token", token))
+            self.queue.put(("done", None))
+            return
+
+
         # Handle quick commands
         cmd_map = {
             "clear": (lambda: self.app.clear_selection(notify=False),

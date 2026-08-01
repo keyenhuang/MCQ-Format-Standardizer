@@ -74,7 +74,19 @@ def _add_question_paragraph(doc, q, normal):
         _add_run_with_text(p_q, q.question)
 
 
-def build_output_document(questions):
+def _add_explanation_paragraph(doc, q, normal):
+    if q.explanation_xml:
+        p_exp = doc.add_paragraph(style=normal)
+        _add_run_with_text(p_exp, "Explanation: ", bold=True)
+        _append_xml_elements(p_exp, q.explanation_xml)
+    elif q.explanation:
+        p_exp = doc.add_paragraph(style=normal)
+        r_title = _add_run_with_text(p_exp, "Explanation: ", bold=True)
+        r_text = _add_run_with_text(p_exp, q.explanation)
+        r_text.italic = True
+
+
+def build_output_document(questions, answers_at_bottom: bool = False):
     questions = renumber_questions(questions, start=1)
     doc = Document()
     _remove_default_paragraph(doc)
@@ -88,10 +100,23 @@ def build_output_document(questions):
         _add_question_paragraph(doc, q, normal)
         _add_option_paragraphs(doc, q, normal)
 
-        ans_letter = _extract_answer_letter(q.answer)
-        _add_answer_paragraph(doc, q, normal, ans_letter)
+        if not answers_at_bottom:
+            ans_letter = _extract_answer_letter(q.answer)
+            _add_answer_paragraph(doc, q, normal, ans_letter)
+            _add_explanation_paragraph(doc, q, normal)
 
         if i < len(questions) - 1:
             doc.add_paragraph('', style=normal)
 
+    if answers_at_bottom:
+        p_head = doc.add_paragraph(style=normal)
+        _add_run_with_text(p_head, "--- Answer Key & Explanations ---", bold=True)
+        for q in questions:
+            ans_letter = _extract_answer_letter(q.answer)
+            p_ans = doc.add_paragraph(style=normal)
+            _add_run_with_text(p_ans, f"Q{q.num}: ", bold=True)
+            _add_run_with_text(p_ans, ans_letter or q.answer)
+            _add_explanation_paragraph(doc, q, normal)
+
     return doc
+

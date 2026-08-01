@@ -29,8 +29,16 @@ LEVEL_RE = re.compile(
     re.IGNORECASE | re.DOTALL
 )
 
+EXPLANATION_RE = re.compile(
+    r'^(?:[\ufeff\s]*)(?:Explanation|Explain|Analysis|Solution|'
+    r'\u89e3\u6790|\u3010\u89e3\u6790\u3011|\u9898\u89e3|\u89e3\u7b54)'
+    r'[:\uFF1A\s]\s*(.*)',
+    re.IGNORECASE | re.DOTALL
+)
+
 QUESTION_RE_INPLACE = re.compile(
     r'^([\ufeff\s]*(?:\u7b2c)?(?:Q:?|Question\s*)?)(\d+)'
     r'([.:\uFF0E\u3001)\uFF09\]\u3011\s\u9898]+\s*)(.*)',
     re.IGNORECASE | re.DOTALL
 )
+

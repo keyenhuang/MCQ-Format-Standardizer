@@ -1,1 +1,4 @@
 from formatter.docx_formatter import build_output_document
+from formatter.json_exporter import export_to_json
+from formatter.gift_exporter import export_to_gift
+

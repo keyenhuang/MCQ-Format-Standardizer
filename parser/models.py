@@ -11,3 +11,7 @@ class Question:
     options_xml: List[Tuple[str, list]] = field(default_factory=list)
     answer: str = ""
     level: str = ""
+    q_type: str = "single"
+    explanation: str = ""
+    explanation_xml: list = field(default_factory=list)
+

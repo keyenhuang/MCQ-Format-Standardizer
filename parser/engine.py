@@ -4,7 +4,7 @@ import unicodedata
 from typing import Optional, Tuple, List
 
 from parser.models import Question
-from parser.regex import QUESTION_RE, OPTION_RE, ANSWER_RE, LEVEL_RE
+from parser.regex import QUESTION_RE, OPTION_RE, ANSWER_RE, LEVEL_RE, EXPLANATION_RE
 from parser.xml_utils import (
     create_run_xml, create_br_xml,
     get_para_xml_elements, strip_xml_prefix,
@@ -92,6 +92,14 @@ def parse_answer(text: str, current_options: Optional[List[str]] = None) -> Opti
                     break
         return f"Answer: {letter}) {content}".strip()
 
+    # Check for multi-letter answers like A, B, C or ABC
+    multi_letters = re.findall(r'\b[A-H]\b|^[A-H]{2,4}$', raw_ans, re.IGNORECASE)
+    if len(multi_letters) > 1 or (len(raw_ans) <= 4 and re.match(r'^[A-H]+$', raw_ans, re.IGNORECASE)):
+        all_letters = re.findall(r'[A-H]', raw_ans, re.IGNORECASE)
+        ans_str = ", ".join([l.upper() for l in all_letters])
+        return f"Answer: {ans_str}"
+
+
     if current_options:
         for opt in current_options:
             opt_match = re.match(r'^([A-H])\)\s*(.*)', opt, re.IGNORECASE)
@@ -110,6 +118,16 @@ def parse_level(text: str) -> Optional[str]:
     if not m:
         return None
     return "Level: " + m.group(1).strip()
+
+
+def parse_explanation(text: str) -> Optional[Tuple[str, int]]:
+    text_stripped = unicodedata.normalize('NFKC', text.strip())
+    m = EXPLANATION_RE.match(text_stripped)
+    if not m:
+        return None
+    prefix_len = m.start(1)
+    return m.group(1).strip(), prefix_len
+
 
 
 
@@ -198,8 +216,16 @@ def paragraphs_to_questions(paragraphs, warnings_list=None):
                 current.options_xml.append((letter, opt_elements))
             elif (ans := parse_answer(text_stripped, current.options)):
                 current.answer = ans
+                if "," in ans or len(re.findall(r'[A-H]', ans)) > 1:
+                    current.q_type = "multiple"
             elif (lvl := parse_level(text_stripped)):
                 current.level = lvl
+            elif (exp_result := parse_explanation(text_stripped)):
+                exp_body, exp_prefix_len = exp_result
+                exp_elements = copy.deepcopy(elements)
+                strip_xml_prefix(exp_elements, exp_prefix_len)
+                current.explanation = exp_body
+                current.explanation_xml = exp_elements
             else:
                 if not current.options:
                     if current.question:
@@ -211,3 +237,4 @@ def paragraphs_to_questions(paragraphs, warnings_list=None):
 
     save(current)
     return questions
+
