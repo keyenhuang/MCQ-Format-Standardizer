@@ -25,7 +25,10 @@ A modern, high-performance desktop application for batch parsing, standardizing,
 
 ## 🖥️ UI Overview & CustomTkinter Modernization
 
-![MCQ Format Standardizer Desktop Application UI Preview](assets/gui_preview.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/keyenhuang/MCQ-Format-Standardizer/master/assets/gui_preview.png?v=20260801" width="900" alt="MCQ Format Standardizer Desktop Application UI Preview">
+</p>
+
 
 The application UI leverages CustomTkinter for a sleek, responsive user experience:
 
