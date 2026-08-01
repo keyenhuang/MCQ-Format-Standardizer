@@ -16,7 +16,7 @@ class DropZone(ctk.CTkFrame):
 
         self.drop_label = ctk.CTkLabel(
             self,
-            text="📂 Drag & Drop MCQ files here (.docx, .txt)\nor Click to Browse",
+            text="📂 Drag & Drop Input Files Here (.docx, .txt)\nor Click to Browse",
             font=("Segoe UI", 14, "bold"), text_color=("#2563EB", "#60A5FA"), cursor="hand2"
         )
         self.drop_label.pack(expand=True, fill="both")

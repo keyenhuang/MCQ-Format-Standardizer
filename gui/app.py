@@ -108,12 +108,17 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.file_info_label.bind("<Button-1>", lambda e: self.choose_files())
 
     def _update_file_info(self):
-        self.file_info_var.set(self.file_manager.summary)
+        summary = self.file_manager.summary
+        if summary == "No files selected":
+            self.file_info_var.set("Input Queue: No files loaded")
+        else:
+            self.file_info_var.set(f"Input Queue: {summary}")
+
         has_files = self.file_manager.count > 0
         self.drop_zone.configure(border_color=("#10B981", "#059669") if has_files else ("#3B82F6", "#2563EB"))
         self.convert_btn.configure(state="normal" if has_files else "disabled")
         self.status_var.set(
-            f"Ready to convert {self.file_manager.count} files." if has_files else "Ready"
+            f"Ready to convert {self.file_manager.count} input files." if has_files else "Ready"
         )
 
     def _build_mode_selector(self):
@@ -123,14 +128,14 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.mode_var = ctk.StringVar(value="standard")
 
         def _on_segmented_change(value):
-            if value == "Standardize Format":
-                self.mode_var.set("standard")
-            else:
+            if "Renumber" in value:
                 self.mode_var.set("renumber")
+            else:
+                self.mode_var.set("standard")
 
         self.seg_button = ctk.CTkSegmentedButton(
             self.mode_frame,
-            values=["Standardize Format", "Only Renumber"],
+            values=["Full Standardization", "Renumber Only"],
             command=_on_segmented_change,
             selected_color=("#2563EB", "#1D4ED8"),
             selected_hover_color=("#1D4ED8", "#1E40AF"),
@@ -139,30 +144,29 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
             text_color=("#0F172A", "#F8FAFC"),
             font=("Segoe UI", 13, "bold"), corner_radius=10
         )
-        self.seg_button.set("Standardize Format")
+        self.seg_button.set("Full Standardization")
         self.seg_button.pack(padx=10, pady=(5, 8))
 
         options_row = ctk.CTkFrame(self.mode_frame, fg_color="transparent")
         options_row.pack(fill="x", pady=2)
 
-        ctk.CTkLabel(options_row, text="Format:", font=("Segoe UI", 11, "bold"), text_color=("#475569", "#CBD5E1")).pack(side="left", padx=(5, 2))
-        self.export_format_var = ctk.StringVar(value="DOCX (.docx)")
+        ctk.CTkLabel(options_row, text="Output Format:", font=("Segoe UI", 11, "bold"), text_color=("#475569", "#CBD5E1")).pack(side="left", padx=(5, 2))
+        self.export_format_var = ctk.StringVar(value="Word Doc (.docx)")
         self.format_menu = ctk.CTkOptionMenu(
             options_row, variable=self.export_format_var,
-            values=["DOCX (.docx)", "Moodle GIFT (.gift)", "JSON (.json)"],
-            width=120, height=26, font=("Segoe UI", 11)
+            values=["Word Doc (.docx)", "Moodle GIFT (.gift)", "JSON Data (.json)"],
+            width=130, height=26, font=("Segoe UI", 11)
         )
         self.format_menu.pack(side="left", padx=(0, 15))
 
-        ctk.CTkLabel(options_row, text="Answers:", font=("Segoe UI", 11, "bold"), text_color=("#475569", "#CBD5E1")).pack(side="left", padx=(5, 2))
-        self.answer_pos_var = ctk.StringVar(value="Below Question")
+        ctk.CTkLabel(options_row, text="Answer Location:", font=("Segoe UI", 11, "bold"), text_color=("#475569", "#CBD5E1")).pack(side="left", padx=(5, 2))
+        self.answer_pos_var = ctk.StringVar(value="Below Each Question")
         self.pos_menu = ctk.CTkOptionMenu(
             options_row, variable=self.answer_pos_var,
-            values=["Below Question", "End of Document"],
-            width=135, height=26, font=("Segoe UI", 11)
+            values=["Below Each Question", "Separate Section at End"],
+            width=160, height=26, font=("Segoe UI", 11)
         )
         self.pos_menu.pack(side="left")
-
 
 
     def _build_action_buttons(self):
@@ -170,7 +174,7 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.button_frame.pack(pady=15)
 
         self.convert_btn = ctk.CTkButton(
-            self.button_frame, text="Convert All",
+            self.button_frame, text="Start Conversion",
             command=self.start_conversion, state="disabled",
             fg_color=("#F97316", "#EA580C"), hover_color=("#EA580C", "#C2410C"),
             text_color_disabled=("#64748B", "#94A3B8"),
@@ -179,7 +183,7 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.convert_btn.pack(side="left", padx=10)
 
         self.clear_btn = ctk.CTkButton(
-            self.button_frame, text="Clear List",
+            self.button_frame, text="Clear Queue",
             fg_color=("#E2E8F0", "#1E293B"), hover_color=("#CBD5E1", "#334155"),
             border_width=1, border_color=("#94A3B8", "#475569"),
             text_color=("#0F172A", "#F8FAFC"), font=("Segoe UI", 13, "bold"),
@@ -187,6 +191,7 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
             corner_radius=8
         )
         self.clear_btn.pack(side="left", padx=10)
+
 
 
     def _build_progress(self):
@@ -247,7 +252,7 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
             def_ext = ".docx"
             ftypes = [("Word Document", "*.docx")]
 
-        answers_at_bottom = (self.answer_pos_var.get() == "End of Document")
+        answers_at_bottom = ("Separate Section" in self.answer_pos_var.get() or "End" in self.answer_pos_var.get())
 
         files = self.file_manager.input_files
         if len(files) == 1:
