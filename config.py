@@ -48,11 +48,10 @@ def _apply_env_overrides(config):
 
 
 def get_config():
-    cached = _CONFIG_CACHE
-    if cached is not None:
-        return cached
-
     global _CONFIG_CACHE
+    if _CONFIG_CACHE is not None:
+        return _CONFIG_CACHE
+
 
     config = {
         "API_KEY": "",
