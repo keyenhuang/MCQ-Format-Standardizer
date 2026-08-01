@@ -95,7 +95,7 @@ class ChatSidebar:
 
         ctk.CTkLabel(
             title_frame, text="Copilot",
-            font=("Segoe UI", 18, "bold"), text_color="#1E293B"
+            font=("Segoe UI", 18, "bold"), text_color=("#1E293B", "#F8FAFC")
         ).pack(side="left")
 
         ctk.CTkLabel(
@@ -105,7 +105,7 @@ class ChatSidebar:
 
         ctk.CTkLabel(
             self.parent, text="AI assistant powered by CopilotKit",
-            font=("Segoe UI", 11, "italic"), text_color="#64748B"
+            font=("Segoe UI", 11, "italic"), text_color=("#64748B", "#94A3B8")
         ).pack(anchor="w", padx=15, pady=(0, 10))
 
         self.chat_scroll_frame = ctk.CTkScrollableFrame(
@@ -120,7 +120,9 @@ class ChatSidebar:
             input_frame,
             placeholder_text="Ask copilot...",
             font=FONT_SPEC,
-            border_color="#CBD5E1", fg_color="#F8FAFC", text_color="#1E293B"
+            border_color=("#CBD5E1", "#475569"),
+            fg_color=("#F8FAFC", "#0F172A"),
+            text_color=("#1E293B", "#F8FAFC")
         )
         self.chat_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
         self.chat_entry.bind("<Return>", lambda event: self.handle_chat_submit())
@@ -146,8 +148,9 @@ class ChatSidebar:
         row_frame.pack(fill="x", pady=6, padx=8)
 
         is_user = (sender.lower() == "user")
-        bubble_color = "#E2E8F0" if is_user else "#3B82F6"
-        text_color = "#1E293B" if is_user else "white"
+        bubble_color = ("#E2E8F0", "#334155") if is_user else ("#2563EB", "#1D4ED8")
+        text_color = ("#1E293B", "#F8FAFC") if is_user else "white"
+
         side = "right" if is_user else "left"
         align = "e" if is_user else "w"
 

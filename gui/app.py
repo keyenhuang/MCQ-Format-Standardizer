@@ -26,9 +26,9 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.minsize(800, 550)
         self.resizable(True, True)
 
-        ctk.set_appearance_mode("Light")
+        ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
-        self.configure(fg_color="#F1F5F9")
+        self.configure(fg_color=("#F1F5F9", "#0F172A"))
 
         self.file_manager = FileManager()
         self.setup_ui()
@@ -39,15 +39,15 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.left_frame.pack(side="left", fill="both", expand=True, padx=(20, 10), pady=20)
 
         self.right_frame = ctk.CTkFrame(
-            self, width=380, corner_radius=15,
-            fg_color="#FFFFFF", border_width=1, border_color="#E2E8F0"
+            self, width=380, corner_radius=16,
+            fg_color=("#FFFFFF", "#1E293B"), border_width=1, border_color=("#E2E8F0", "#334155")
         )
         self.right_frame.pack(side="right", fill="both", expand=False, padx=(10, 20), pady=20)
         self.right_frame.pack_propagate(False)
 
         self._build_header()
         self.drop_zone = DropZone(self.left_frame, self.on_files_dropped)
-        self.drop_zone.pack(fill="x", pady=10, padx=10)
+        self.drop_zone.pack(fill="x", pady=12, padx=5)
         self._build_file_info()
         self._build_mode_selector()
         self._build_action_buttons()
@@ -60,7 +60,7 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
             return
         self._update_file_info()
         names = ", ".join(f"{p.name}" for p in paths)
-        mode_str = "Standardize Format" if self.mode_var.get() == "standard" else "Only Renumber"
+        mode_str = self.seg_button.get()
         msg = f"Added to conversion queue:\n- {names}\n\n(Ready to process in {mode_str} mode)"
         actions = [
             {"text": "Convert Now", "command": self.start_conversion},
@@ -69,30 +69,48 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.sidebar.add_chat_message("Copilot", msg, actions=actions)
 
     def _build_header(self):
+        header_frame = ctk.CTkFrame(self.left_frame, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(5, 10))
+
+        title_box = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_box.pack(side="left")
+
         header = ctk.CTkLabel(
-            self.left_frame, text="MCQ Format Standardizer",
-            font=("Segoe UI", 26, "bold"), text_color="#1E293B"
+            title_box, text="MCQ Format Standardizer",
+            font=("Segoe UI", 24, "bold"), text_color=("#1E293B", "#F8FAFC")
         )
-        header.pack(pady=(10, 5))
+        header.pack(anchor="w")
         subheader = ctk.CTkLabel(
-            self.left_frame, text="Advanced Batch MCQ Processing (Supports formulas)",
-            font=("Segoe UI", 13), text_color="#64748B"
+            title_box, text="Batch MCQ Standardizing Engine (Supports OpenXML Math Formulas)",
+            font=("Segoe UI", 12), text_color=("#64748B", "#94A3B8")
         )
-        subheader.pack(pady=(0, 10))
+        subheader.pack(anchor="w")
+
+        # Theme Switcher
+        theme_box = ctk.CTkFrame(header_frame, fg_color="transparent")
+        theme_box.pack(side="right", anchor="e")
+
+        self.theme_menu = ctk.CTkOptionMenu(
+            theme_box, values=["System", "Light", "Dark"],
+            width=90, height=28, font=("Segoe UI", 11),
+            command=lambda mode: ctk.set_appearance_mode(mode)
+        )
+        self.theme_menu.pack()
 
     def _build_file_info(self):
         self.file_info_var = ctk.StringVar(value="No files selected")
         self.file_info_label = ctk.CTkLabel(
             self.left_frame, textvariable=self.file_info_var,
-            font=("Segoe UI", 11, "italic"), wraplength=480
+            font=("Segoe UI", 12, "italic"), text_color=("#475569", "#CBD5E1"),
+            wraplength=480
         )
-        self.file_info_label.pack(pady=5)
+        self.file_info_label.pack(pady=6)
         self.file_info_label.bind("<Button-1>", lambda e: self.choose_files())
 
     def _update_file_info(self):
         self.file_info_var.set(self.file_manager.summary)
         has_files = self.file_manager.count > 0
-        self.drop_zone.configure(border_color="green" if has_files else "#3B82F6")
+        self.drop_zone.configure(border_color=("#10B981", "#059669") if has_files else ("#3B82F6", "#2563EB"))
         self.convert_btn.configure(state="normal" if has_files else "disabled")
         self.status_var.set(
             f"Ready to convert {self.file_manager.count} files." if has_files else "Ready"
@@ -100,22 +118,28 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
 
     def _build_mode_selector(self):
         self.mode_frame = ctk.CTkFrame(self.left_frame, fg_color="transparent")
-        self.mode_frame.pack(pady=5)
+        self.mode_frame.pack(pady=10)
+
         self.mode_var = ctk.StringVar(value="standard")
 
-        self.radio_standard = ctk.CTkRadioButton(
-            self.mode_frame, text="Standardize Format",
-            variable=self.mode_var, value="standard",
-            text_color="#1E293B", fg_color="#2563EB", hover_color="#3B82F6"
-        )
-        self.radio_standard.pack(side="left", padx=15)
+        def _on_segmented_change(value):
+            if value == "Standardize Format":
+                self.mode_var.set("standard")
+            else:
+                self.mode_var.set("renumber")
 
-        self.radio_renumber = ctk.CTkRadioButton(
-            self.mode_frame, text="Only Renumber",
-            variable=self.mode_var, value="renumber",
-            text_color="#1E293B", fg_color="#2563EB", hover_color="#3B82F6"
+        self.seg_button = ctk.CTkSegmentedButton(
+            self.mode_frame,
+            values=["Standardize Format", "Only Renumber"],
+            command=_on_segmented_change,
+            selected_color="#2563EB", selected_hover_color="#1D4ED8",
+            unselected_color=("#E2E8F0", "#334155"),
+            unselected_hover_color=("#CBD5E1", "#475569"),
+            font=("Segoe UI", 13, "bold"), corner_radius=10
         )
-        self.radio_renumber.pack(side="left", padx=15)
+        self.seg_button.set("Standardize Format")
+        self.seg_button.pack(padx=10, pady=5)
+
 
     def _build_action_buttons(self):
         self.button_frame = ctk.CTkFrame(self.left_frame, fg_color="transparent")

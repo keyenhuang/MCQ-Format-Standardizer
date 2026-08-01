@@ -7,16 +7,17 @@ from tkinterdnd2 import DND_FILES
 
 class DropZone(ctk.CTkFrame):
     def __init__(self, parent, on_files_dropped: Callable[[List[Path]], None], **kwargs):
-        super().__init__(parent, height=120, border_width=2,
-                         border_color="#3B82F6", fg_color="#F8FAFC",
-                         corner_radius=12, **kwargs)
+        super().__init__(parent, height=140, border_width=2,
+                         border_color=("3B82F6", "#2563EB"),
+                         fg_color=("#F8FAFC", "#1E293B"),
+                         corner_radius=14, **kwargs)
         self.pack_propagate(False)
         self.on_files_dropped = on_files_dropped
 
         self.drop_label = ctk.CTkLabel(
             self,
-            text="Drag and Drop files here\nor\nClick to Browse",
-            font=("Segoe UI", 15), text_color="#3B82F6", cursor="hand2"
+            text="📂 Drag & Drop MCQ files here (.docx, .txt)\nor Click to Browse",
+            font=("Segoe UI", 14, "bold"), text_color=("#2563EB", "#60A5FA"), cursor="hand2"
         )
         self.drop_label.pack(expand=True, fill="both")
 
@@ -29,10 +30,11 @@ class DropZone(ctk.CTkFrame):
         self.dnd_bind('<<DragLeave>>', self._on_drag_leave)
 
     def _on_drag_enter(self, event):
-        self.configure(border_color="#10B981", fg_color="#ECFDF5")
+        self.configure(border_color=("#10B981", "#059669"), fg_color=("#ECFDF5", "#064E3B"))
 
     def _on_drag_leave(self, event):
-        self.configure(border_color="#3B82F6", fg_color="#F8FAFC")
+        self.configure(border_color=("#3B82F6", "#2563EB"), fg_color=("#F8FAFC", "#1E293B"))
+
 
     def handle_drop(self, event):
         from tkinter import messagebox

@@ -1,313 +1,185 @@
 # MCQ Format Standardizer
 
-[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)]()
 [![CI](https://github.com/keyenhuang/MCQ-Format-Standardizer/actions/workflows/ci.yml/badge.svg)](https://github.com/keyenhuang/MCQ-Format-Standardizer/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![UI: CustomTkinter](https://img.shields.io/badge/UI-CustomTkinter-blueviolet.svg)](https://github.com/TomSchimansky/CustomTkinter)
 
-A comprehensive tool for converting and standardizing MCQ (Multiple Choice Question) documents from various formats into a consistent, editable format suitable for educational and assessment purposes.
+A modern, high-performance desktop application for batch parsing, standardizing, and renumbering Multiple Choice Question (MCQ) documents from Word (`.docx`) and Plain Text (`.txt`) files, with native support for OpenXML math formulas, full-width Chinese character normalization, and an integrated AI Copilot assistant.
 
-## Overview
+---
 
-**MCQ Format Standardizer** is a powerful desktop application that helps educators, content creators, and administrators process MCQ questions efficiently. The tool can:
+## 🌟 Key Features
 
-- Extract MCQ questions from Word documents (.docx) and text files (.txt)
-- Standardize question formatting and structure
-- Batch process multiple files simultaneously
-- Provide AI-powered assistance for question explanation and guidance
-- Support both full conversion and simple renumbering operations
+| Feature | Description |
+| :--- | :--- |
+| **📑 Multi-Format Parsing** | Extracts MCQs seamlessly from Word (`.docx`) and Plain Text (`.txt`) files. |
+| **📐 Math Formula Preservation** | Preserves embedded OpenXML MathOMath formulas (`x^2 + y^2 = z^2`) in Word documents without corruption. |
+| **🔤 Unicode Normalization** | Automatically normalizes full-width Chinese numbers (`１．`), options (`Ａ．`), and brackets (`（Ｂ）`) to standard ASCII. |
+| **🎨 Modern CustomTkinter GUI** | Built with CustomTkinter, featuring Dark/Light/System theme toggling, drag-and-drop file queue, segmented mode controls, and card-based layout. |
+| **🤖 Built-in AI Copilot** | Streamed AI assistant powered by Groq / OpenAI compatible APIs for file guidance, Q&A, and quick slash commands (`/apikey`, `/baseurl`, `/model`). |
+| **⚡ Dual Operation Modes** | Choose between **Standardize Format** (full restructuring) and **Only Renumber** (in-place index re-sequencing). |
+| **📦 Standalone Executable** | Includes `build_exe.py` PyInstaller script for single-click Windows `.exe` packaging. |
 
-## Key Features
+---
 
-### Document Processing
-- **Multi-format Support**: Convert .docx and .txt files containing MCQ questions
-- **Batch Processing**: Process multiple files at once for increased productivity
-- **Flexible Modes**: Choose between full standardization or simple renumbering
+## 🖥️ UI Overview & CustomTkinter Modernization
 
-### Intelligent GUI Interface
-- **Drag-and-Drop**: Simple file selection with visual feedback
-- **Quick Actions**: Pre-built shortcuts for common tasks
-- **Real-time Status**: Progress tracking and error notifications
-- **AI Assistant**: Built-in Q&A system for question explanation
+The application UI leverages CustomTkinter for a sleek, responsive user experience:
 
-### Advanced Capabilities
-- **Error Recovery**: Smart error detection with actionable advice
-- **Configurable Output**: Customizable formatting options
-- **Secure Storage**: Encrypted API key management
-- **Extensive Logging**: Detailed processing logs for debugging
+- **Theme Mode Switcher**: Seamlessly toggle between **System**, **Light**, and **Dark** appearance modes.
+- **Segmented Control**: Easily switch between `Standardize Format` and `Only Renumber` conversion modes.
+- **Drag & Drop Card**: Reactive drop zone with visual color feedback on file hover and drop.
+- **Copilot Sidebar**: Chat sidebar with streamed token animations, thinking indicators, and quick action chips.
 
-## Technology Stack
+---
 
-- **Python 3.10+**: Core programming language
-- **Tkinter/CTkinter**: GUI framework
-- **python-docx**: Word document manipulation
-- **keyring**: Secure password management
-- **OpenAI API/Groq**: AI-powered chat assistance
-
-## Installation
+## 🛠️ Installation & Setup
 
 ### Prerequisites
-```bash
-python 3.7 or higher
-pip (for package management)
-Administrator privileges (for file system access)
-```
+- Python 3.10 or higher
+- `pip` package manager
 
-### Step-by-Step Installation
+### Step-by-Step Setup
 
 1. **Clone the repository**:
-```bash
-git clone https://github.com/keyenhuang/MCQ-Format-Standardizer.git
-cd MCQ-Format-Standardizer
-```
+   ```bash
+   git clone https://github.com/keyenhuang/MCQ-Format-Standardizer.git
+   cd MCQ-Format-Standardizer
+   ```
 
 2. **Install Python dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **(Optional) Install development & testing dependencies**:
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+---
+
+## 🚀 Usage Guide
+
+### 1. Graphical User Interface (GUI Mode)
+
+Launch the desktop GUI application:
 ```bash
-pip install -r requirements.txt
-```
-
-3. **Set up API key** (for AI features):
-```bash
-# Method 1: Environment variables (recommended)
-export MCQ_API_KEY="your-api-key"
-export MCQ_BASE_URL="https://api.groq.com/openai/v1"
-
-# Method 2: GUI setup (recommended for security)
-Run the application and use '/apikey your-key' command in the chat
-```
-
-4. **Run the application**:
-```bash
-# Command Line Interface
-python main.py input.docx output.docx
-
-# Graphical User Interface
 python main.py --gui
+# or simply:
+python main.py
 ```
 
-## Usage Guide
+#### Basic Workflow:
+1. **Add Files**: Drag & drop `.docx` or `.txt` files into the left drag-and-drop card, or click to browse.
+2. **Select Mode**: Use the segmented button to choose **Standardize Format** or **Only Renumber**.
+3. **Convert**: Click **Convert All** to execute batch processing.
+4. **Chat with Copilot**: Use the right sidebar to set API keys, ask questions, or run quick commands.
 
-### Command Line Interface
+---
 
-The application supports two main modes of operation:
+### 2. Command Line Interface (CLI Mode)
 
 #### Standard Conversion
+Convert and standardize formatting into a new `.docx` document:
 ```bash
 python main.py input_file.docx output_file.docx
 ```
 
-#### Only Renumber
+#### Text File Conversion
+Convert a plain text `.txt` question bank into a standardized `.docx` file:
 ```bash
-python main.py input_file.txt --only-renumber
+python main.py input_file.txt output_file.docx
 ```
 
-#### Display Help
+#### In-place Renumbering Only
+Renumber questions sequentially (`1.`, `2.`, `3.`) while preserving existing document styling:
 ```bash
-python main.py --help
+python main.py input_file.docx output_file.docx --only-renumber
 ```
-
-### Graphical User Interface
-
-1. **Launch the application**:
-```bash
-python main.py --gui
-```
-
-2. **Basic workflow**:
-   - Drag and drop .docx or .txt files into the left panel
-   - Select "Standardize Format" or "Only Renumber" mode
-   - Click "Convert All" to process files
-   - Monitor progress in the status area
-
-3. **Chat with AI Assistant**:
-   - Use the chat sidebar for Q&A
-   - Type commands like `/help`, `/convert`, `/apikey`
-   - Get explanations for complex questions
-
-### Chat Commands
-
-#### Basic Commands
-- `/help`: Display help information
-- `/convert`: Start file conversion
-- `/standard`: Switch to standardization mode
-- `/renumber`: Switch to renumber mode
-- `/clear`: Clear file list
-
-#### LLM Configuration
-- `/apikey <your-key>`: Set API key securely
-- `/baseurl <url>`: Set custom API base URL
-
-## File Formats Supported
-
-### Input Formats
-- **Word Documents (.docx)**: Full MCQ question extraction
-- **Text Files (.txt)**: Plain text question processing
-
-### Output Format
-- **Word Documents (.docx)**: Standardized MCQ format with proper formatting
-
-## Configuration
-
-### API Configuration
-The application uses Groq's LLaMA models by default. For custom setups:
-
-1. **Environment Variables** (recommended):
-```bash
-export MCQ_API_KEY="your-groq-api-key"
-export MCQ_BASE_URL="https://api.groq.com/openai/v1"
-export MCQ_MODEL="llama-3.3-70b-versatile"
-```
-
-2. **GUI Configuration**:
-   - Click the chat button to open AI assistant
-   - Use `/apikey your-key` to set securely
-   - Use `/baseurl` if using a different provider
-
-### Application Settings
-- **Configuration File**: `config.json` stores application settings
-- **API Key Storage**: Uses system keyring for secure storage
-- **Logging**: Detailed logs available for troubleshooting
-
-## Project Structure
-
-```
-mcq-format-standardizer/
-├── main.py                    # Entry point and CLI interface
-├── config.py                  # Configuration management
-├── logger.py                  # Logging system
-├── llm_client.py              # AI chat integration
-├── .env.example               # Environment variable template
-├── .gitignore                 # Version control ignored files
-├── README.md                  # This documentation
-├── requirements.txt           # Python dependencies
-├── formatter/                 # Output document formatting
-│   ├── docx_formatter.py      # Word document builder
-│   └── __init__.py            # Module initialization
-├── gui/                       # Graphical user interface
-│   ├── app.py                 # Main application window
-│   ├── chat_sidebar.py        # AI chat interface
-│   └── __init__.py            # Module initialization
-└── parser/                    # Document parsing and processing
-    ├── engine.py              # Core parsing engine
-    ├── models.py              # Data models
-    ├── regex.py               # Regular expression patterns
-    ├── text_utils.py          # Text processing utilities
-    ├── txt_parser.py          # Text file parser
-    ├── docx_parser.py          # Word document parser
-    └── xml_utils.py           # XML document utilities
-```
-
-## Features by Module
-
-### Parser Module
-- **docx_parser.py**: Extracts questions from .docx files using document structure analysis
-- **txt_parser.py**: Processes plain text files with pattern matching
-- **engine.py**: Core question extraction and validation engine
-- **models.py**: Data structures for question representation
-
-### Formatter Module
-- **docx_formatter.py**: Builds standardized .docx documents from parsed questions
-
-### GUI Module
-- **app.py**: Main application window with all UI components
-- **chat_sidebar.py**: AI assistant interface for question help and guidance
-
-### Utilities
-- **llm_client.py**: AI chat integration for question explanation
-- **logger.py**: Comprehensive logging system
-- **config.py**: Secure configuration management
-
-## Development
-
-### Contributing
-1. **Fork the repository**
-2. **Create a feature branch**
-```bash
-git checkout -b feature/your-name/feature-name
-```
-3. **Make your changes**
-4. **Test your changes**
-5. **Commit with descriptive message**
-```bash
-git add .
-git commit -m "feat: add new feature description"
-```
-6. **Push to your branch**
-```bash
-git push origin feature/your-name/feature-name
-```
-7. **Submit a pull request**
-
-### Running Tests
-Currently, the project does not have a formal test suite. For manual testing:
-
-```bash
-# Run the application in different modes
-python main.py --gui          # GUI mode
-python main.py input.docx      # CLI conversion mode
-python main.py input.docx --r # Renumber mode
-```
-
-### Development Setup
-For development and enhancement:
-
-1. **Python Environment**:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-2. **Code Style**:
-   - PEP 8 compliant
-   - Type hints where appropriate
-   - Comprehensive docstrings
-
-3. **Security Best Practices**:
-   - Never commit API keys
-   - Use environment variables for sensitive data
-   - Implement proper error handling
-
-## Troubleshooting
-
-### Common Issues
-
-1. **API Key Not Working**
-   - Check if key is correctly set via `/apikey` command
-   - Verify environment variables are set
-   - Ensure API key has necessary permissions
-
-2. **File Conversion Fails**
-   - Try different input formats
-   - Check if document structure is compatible
-   - Review error messages in the application logs
-
-3. **Application Doesn't Start**
-   - Ensure all Python dependencies are installed
-   - Check for port conflicts if running multiple instances
-   - Verify file system permissions
-
-### Getting Help
-
-1. **Chat with AI Assistant**: Use the chat sidebar for instant help
-2. **Check Application Logs**: Review logs in the application for detailed error information
-3. **Environment Variables**: Use `.env.example` as a template for configuration
-
-## License
-
-[MIT License](LICENSE)
-
-## Contact
-
-For issues, questions, or feature requests:
-- Open an issue in the repository
-- Contact through the application's built-in support system
-- Check the documentation for common solutions
-
-## Acknowledgements
-
-Special thanks to all contributors and users who have helped improve this application.
 
 ---
 
-**Version**: 1.0.0  
-**Author**: keyenhuang
+## 🤖 AI Copilot & Slash Commands
+
+The built-in Copilot supports instant local quick actions and LLM streaming:
+
+| Command | Type | Description |
+| :--- | :--- | :--- |
+| `/apikey <your_key>` | LLM Config | Saves API key securely to system keyring. |
+| `/baseurl <url>` | LLM Config | Customizes LLM base URL (e.g. Groq, OpenAI, Ollama). |
+| `/model <name>` | LLM Config | Sets target LLM model name (default: `llama-3.3-70b-versatile`). |
+| `convert` | Local Action | Triggers file conversion for currently loaded queue. |
+| `clear` | Local Action | Clears the current file queue. |
+| `standard` | Local Action | Switches mode to Standardize Format. |
+| `renumber` | Local Action | Switches mode to Only Renumber. |
+| `help` | Local Action | Displays quick help and command list. |
+
+---
+
+## 📦 Packaging Standalone Windows `.exe`
+
+To build a standalone executable for Windows (without requiring a Python installation on user machines):
+
+```bash
+python build_exe.py
+```
+
+The output executable will be generated in `dist/MCQFormatStandardizer/`.
+
+---
+
+## 🧪 Running Unit Tests
+
+Run the test suite using `pytest` or Python's native `unittest`:
+
+```bash
+# Using pytest
+pytest tests/
+
+# Using unittest
+python -m unittest discover tests
+```
+
+---
+
+## 📁 Project Architecture
+
+```
+MCQ-Format-Standardizer/
+├── main.py                    # Application entry point (CLI & GUI dispatch)
+├── build_exe.py               # PyInstaller standalone build script
+├── config.py                  # App configuration & keyring management
+├── logger.py                  # Centralized logging setup
+├── llm_client.py              # LLM streaming API client
+├── requirements.txt           # Production dependencies
+├── requirements-dev.txt       # Testing & dev dependencies
+│
+├── parser/                    # MCQ Parsing Engine
+│   ├── engine.py              # Core parser, NFKC normalization & error diagnostics
+│   ├── docx_parser.py         # OpenXML Word document parser & in-place renumbering
+│   ├── txt_parser.py          # Plain text parser
+│   ├── regex.py               # Question & Option regular expressions
+│   ├── models.py              # Question data models
+│   └── xml_utils.py           # Word OpenXML node processing & math formula handling
+│
+├── formatter/                 # Output Document Generator
+│   └── docx_formatter.py      # Standardized Word document builder
+│
+├── gui/                       # CustomTkinter GUI Components
+│   ├── app.py                 # Main application window & Theme Switcher
+│   ├── drop_zone.py           # Drag and Drop file card
+│   ├── chat_sidebar.py        # Copilot AI chat sidebar
+│   ├── file_manager.py        # File queue manager
+│   └── converter.py           # Background conversion thread worker
+│
+└── tests/                     # Automated Test Suite
+    └── test_parser.py         # Unit tests for parser engine
+```
+
+---
+
+## 📄 License
+
+Distributed under the [MIT License](LICENSE). Copyright (c) 2026 keyenhuang.
