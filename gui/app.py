@@ -132,9 +132,11 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
             self.mode_frame,
             values=["Standardize Format", "Only Renumber"],
             command=_on_segmented_change,
-            selected_color="#2563EB", selected_hover_color="#1D4ED8",
-            unselected_color=("#E2E8F0", "#334155"),
-            unselected_hover_color=("#CBD5E1", "#475569"),
+            selected_color=("#2563EB", "#1D4ED8"),
+            selected_hover_color=("#1D4ED8", "#1E40AF"),
+            unselected_color=("#CBD5E1", "#334155"),
+            unselected_hover_color=("#94A3B8", "#475569"),
+            text_color=("#0F172A", "#F8FAFC"),
             font=("Segoe UI", 13, "bold"), corner_radius=10
         )
         self.seg_button.set("Standardize Format")
@@ -148,19 +150,22 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.convert_btn = ctk.CTkButton(
             self.button_frame, text="Convert All",
             command=self.start_conversion, state="disabled",
-            fg_color="#F97316", hover_color="#EA580C",
+            fg_color=("#F97316", "#EA580C"), hover_color=("#EA580C", "#C2410C"),
+            disabled_color=("#CBD5E1", "#334155"), disabled_text_color=("#64748B", "#94A3B8"),
             text_color="white", font=("Segoe UI", 15, "bold"), corner_radius=8
         )
         self.convert_btn.pack(side="left", padx=10)
 
         self.clear_btn = ctk.CTkButton(
             self.button_frame, text="Clear List",
-            fg_color="transparent", hover_color="#F1F5F9",
-            border_width=1, border_color="#CBD5E1",
-            text_color="#64748B", command=lambda: self.clear_selection(),
+            fg_color=("#E2E8F0", "#1E293B"), hover_color=("#CBD5E1", "#334155"),
+            border_width=1, border_color=("#94A3B8", "#475569"),
+            text_color=("#0F172A", "#F8FAFC"), font=("Segoe UI", 13, "bold"),
+            command=lambda: self.clear_selection(),
             corner_radius=8
         )
         self.clear_btn.pack(side="left", padx=10)
+
 
     def _build_progress(self):
         self.progress_frame = ctk.CTkFrame(self.left_frame, fg_color="transparent")
