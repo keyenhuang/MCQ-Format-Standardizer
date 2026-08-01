@@ -135,11 +135,24 @@ class ChatSidebar:
         )
         self.chat_send_btn.pack(side="right")
 
-        self.add_chat_message(
-            "Copilot",
-            "Hi! I am your MCQ Copilot. Ask me how to use the converter, "
-            "explain metrology questions, or type 'convert' to trigger processing!"
+        welcome_msg = (
+            "👋 Hi! I am your MCQ Copilot Assistant.\n\n"
+            "Here is how you can interact with me:\n\n"
+            "💬 Ask Questions & Guidance:\n"
+            "- Ask how to format documents or troubleshoot errors.\n"
+            "- Ask for question explanations or subject help.\n\n"
+            "⚡ Quick Action Commands:\n"
+            "- convert  : Start processing loaded input files.\n"
+            "- clear    : Clear the current file queue.\n"
+            "- standard : Switch to 'Full Standardization' mode.\n"
+            "- renumber : Switch to 'Renumber Only' mode.\n"
+            "- help     : View complete feature guide.\n\n"
+            "⚙️ LLM Slash Commands:\n"
+            "- /apikey <key> : Save API key securely to keyring.\n"
+            "- /explain      : Auto-generate answers & explanations."
         )
+        self.add_chat_message("Copilot", welcome_msg)
+
 
     # --- Message Bubble ---
 
