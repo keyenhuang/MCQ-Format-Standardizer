@@ -46,7 +46,7 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.right_frame.pack_propagate(False)
 
         self._build_header()
-        self.drop_zone = DropZone(self.left_frame, self.on_files_dropped)
+        self.drop_zone = DropZone(self.left_frame, self.on_files_dropped, on_click=self.choose_files)
         self.drop_zone.pack(fill="x", pady=12, padx=5)
         self._build_file_info()
         self._build_mode_selector()
@@ -59,7 +59,7 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         if not new_files:
             return
         self._update_file_info()
-        names = ", ".join(f"{p.name}" for p in paths)
+        names = ", ".join(f"{p.name}" for p in new_files)
         mode_str = self.seg_button.get()
         msg = f"Added to conversion queue:\n- {names}\n\n(Ready to process in {mode_str} mode)"
         actions = [
@@ -86,7 +86,6 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         )
         subheader.pack(anchor="w")
 
-        # Theme Switcher
         theme_box = ctk.CTkFrame(header_frame, fg_color="transparent")
         theme_box.pack(side="right", anchor="e")
 
@@ -98,14 +97,14 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.theme_menu.pack()
 
     def _build_file_info(self):
-        self.file_info_var = ctk.StringVar(value="No files selected")
+        self.file_info_var = ctk.StringVar(value="Input Queue: No files loaded")
         self.file_info_label = ctk.CTkLabel(
             self.left_frame, textvariable=self.file_info_var,
             font=("Segoe UI", 12, "italic"), text_color=("#475569", "#CBD5E1"),
             wraplength=480
         )
         self.file_info_label.pack(pady=6)
-        self.file_info_label.bind("<Button-1>", lambda e: self.choose_files())
+        self.file_info_label.bind("<Button-1>", lambda _e: self.choose_files())
 
     def _update_file_info(self):
         summary = self.file_manager.summary
@@ -118,8 +117,16 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.drop_zone.configure(border_color=("#10B981", "#059669") if has_files else ("#3B82F6", "#2563EB"))
         self.convert_btn.configure(state="normal" if has_files else "disabled")
         self.status_var.set(
-            f"Ready to convert {self.file_manager.count} input files." if has_files else "Ready"
+            f"Ready to convert {self.file_manager.count} input file(s)." if has_files else "Ready"
         )
+
+    def set_mode(self, mode: str):
+        is_renumber = (mode == "renumber")
+        self.mode_var.set("renumber" if is_renumber else "standard")
+        self.seg_button.set("Renumber Only" if is_renumber else "Full Standardization")
+        menu_state = "disabled" if is_renumber else "normal"
+        self.format_menu.configure(state=menu_state)
+        self.pos_menu.configure(state=menu_state)
 
     def _build_mode_selector(self):
         self.mode_frame = ctk.CTkFrame(self.left_frame, fg_color="transparent")
@@ -128,10 +135,7 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.mode_var = ctk.StringVar(value="standard")
 
         def _on_segmented_change(value):
-            if "Renumber" in value:
-                self.mode_var.set("renumber")
-            else:
-                self.mode_var.set("standard")
+            self.set_mode("renumber" if "Renumber" in value else "standard")
 
         self.seg_button = ctk.CTkSegmentedButton(
             self.mode_frame,
@@ -168,7 +172,6 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         )
         self.pos_menu.pack(side="left")
 
-
     def _build_action_buttons(self):
         self.button_frame = ctk.CTkFrame(self.left_frame, fg_color="transparent")
         self.button_frame.pack(pady=15)
@@ -191,8 +194,6 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
             corner_radius=8
         )
         self.clear_btn.pack(side="left", padx=10)
-
-
 
     def _build_progress(self):
         self.progress_frame = ctk.CTkFrame(self.left_frame, fg_color="transparent")
@@ -234,40 +235,52 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         if notify:
             self.sidebar.add_chat_message("Copilot", "File queue cleared.")
 
+    def _resolve_export_options(self):
+        fmt_str = self.export_format_var.get()
+        if "JSON" in fmt_str:
+            return "json", ".json", [("JSON File", "*.json")]
+        if "GIFT" in fmt_str:
+            return "gift", ".gift", [("Moodle GIFT Text", "*.gift")]
+        return "docx", ".docx", [("Word Document", "*.docx")]
+
+    def _build_targets(self, files, mode, def_ext):
+        if len(files) == 1:
+            inp = files[0]
+            if mode == "renumber":
+                save_ext = inp.suffix.lower()
+                ftypes = [("Word Document", "*.docx")] if save_ext == ".docx" else [("Text File", "*.txt")]
+                default_name = f"{inp.stem}_renumbered{save_ext}"
+            else:
+                save_ext = def_ext
+                _, _, ftypes = self._resolve_export_options()
+                default_name = f"{inp.stem}_standardized{save_ext}"
+
+            output_path = filedialog.asksaveasfilename(
+                title="Save Converted File",
+                defaultextension=save_ext,
+                initialdir=str(inp.parent),
+                initialfile=default_name,
+                filetypes=ftypes
+            )
+            if not output_path:
+                return None
+            return [(inp, Path(output_path))]
+
+        if mode == "renumber":
+            return [(f, f.with_name(f"{f.stem}_renumbered{f.suffix}")) for f in files]
+        return [(f, f.with_name(f"{f.stem}_standardized{def_ext}")) for f in files]
+
     def start_conversion(self):
         if self.file_manager.count == 0:
             return
 
-        fmt_str = self.export_format_var.get()
-        if "JSON" in fmt_str:
-            fmt_ext = "json"
-            def_ext = ".json"
-            ftypes = [("JSON File", "*.json")]
-        elif "GIFT" in fmt_str:
-            fmt_ext = "gift"
-            def_ext = ".gift"
-            ftypes = [("Moodle GIFT Text", "*.gift")]
-        else:
-            fmt_ext = "docx"
-            def_ext = ".docx"
-            ftypes = [("Word Document", "*.docx")]
-
+        mode = self.mode_var.get()
+        fmt_ext, def_ext, _ = self._resolve_export_options()
         answers_at_bottom = ("Separate Section" in self.answer_pos_var.get() or "End" in self.answer_pos_var.get())
 
-        files = self.file_manager.input_files
-        if len(files) == 1:
-            output_path = filedialog.asksaveasfilename(
-                title="Save Converted File",
-                defaultextension=def_ext,
-                initialdir=str(files[0].parent),
-                initialfile=files[0].stem + f"_standardized{def_ext}",
-                filetypes=ftypes
-            )
-            if not output_path:
-                return
-            targets = [(files[0], Path(output_path))]
-        else:
-            targets = [(f, f.with_name(f.stem + f"_standardized{def_ext}")) for f in files]
+        targets = self._build_targets(self.file_manager.input_files, mode, def_ext)
+        if not targets:
+            return
 
         self.status_var.set("Converting...")
         self.convert_btn.configure(state="disabled")
@@ -276,27 +289,29 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         self.progress_bar.set(0)
         self.progress_percent_var.set("0%")
 
-        mode = self.mode_var.get()
         mode_str = "Standardize Format" if mode == "standard" else "Only Renumber"
         file_list = ", ".join(f"{f.name}" for f, _ in targets)
+        fmt_display = "IN-PLACE" if mode == "renumber" else fmt_ext.upper()
         self.sidebar.add_chat_message(
-            "Copilot", f"Starting conversion for:\n- {file_list}\n\n(Mode: {mode_str}, Format: {fmt_ext.upper()})"
+            "Copilot", f"Starting conversion for:\n- {file_list}\n\n(Mode: {mode_str}, Format: {fmt_display})"
         )
 
         run_conversion(
             targets, mode,
             on_progress=self._on_conversion_progress,
-            on_complete=lambda results: self.after(0, lambda: self._on_conversion_complete(results)),
+            on_complete=lambda results: self.after(0, lambda r=results: self._on_conversion_complete(r)),
             export_format=fmt_ext,
             answers_at_bottom=answers_at_bottom
         )
 
-
     def _on_conversion_progress(self, current, total):
-        pct = int((current / total) * 100)
-        self.after(0, lambda: (self.status_var.set(f"Processing ({current}/{total})"),
-                               self.progress_bar.set(current / total),
-                               self.progress_percent_var.set(f"{pct}%")))
+        ratio = (current / total) if total else 0
+        pct = int(ratio * 100)
+        self.after(0, lambda: (
+            self.status_var.set(f"Processing ({current}/{total})"),
+            self.progress_bar.set(ratio),
+            self.progress_percent_var.set(f"{pct}%")
+        ))
 
     def _on_conversion_complete(self, results):
         self.progress_bar.set(1.0)
@@ -307,11 +322,12 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
         if failed:
             err_lines = [f"{r.filename}: {r.error_msg}" for r in failed[:5]]
             if len(failed) > 5:
-                err_lines.append(f"... and {len(failed)-5} more.")
+                err_lines.append(f"... and {len(failed) - 5} more.")
             messagebox.showerror("Failed", "\n".join(err_lines))
 
         self.status_var.set(f"Done! {success_count}/{len(results)} files converted.")
-        messagebox.showinfo("Success", f"Successfully converted {success_count} of {len(results)} files.")
+        if success_count > 0:
+            messagebox.showinfo("Success", f"Successfully converted {success_count} of {len(results)} files.")
 
         lines = [f"Conversion Completed! Processed {success_count} of {len(results)} file(s).\n"]
         for r in results:
@@ -320,13 +336,15 @@ class MCQFormatStandardizerApp(TkinterDnDCTk):
                 if r.math_count:
                     parts.append(f"({r.math_count} math formulas preserved)")
                 if r.warnings:
-                    parts.append("(with format warnings)")
+                    parts.append(f"({len(r.warnings)} format warning(s))")
                 lines.append(" ".join(parts))
             else:
                 lines.append(f"- {r.filename}: Failed. Reason: {r.error_msg}")
         self.sidebar.add_chat_message("Copilot", "\n".join(lines))
 
-        self.file_manager.clear()
+        if not failed:
+            self.file_manager.clear()
         self._update_file_info()
         self.clear_btn.configure(state="normal")
         self.progress_frame.pack_forget()
+

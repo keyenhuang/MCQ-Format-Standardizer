@@ -1,12 +1,18 @@
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import customtkinter as ctk
 from tkinterdnd2 import DND_FILES
 
 
 class DropZone(ctk.CTkFrame):
-    def __init__(self, parent, on_files_dropped: Callable[[List[Path]], None], **kwargs):
+    def __init__(
+        self,
+        parent,
+        on_files_dropped: Callable[[List[Path]], None],
+        on_click: Optional[Callable[[], None]] = None,
+        **kwargs,
+    ):
         super().__init__(parent, height=140, border_width=2,
                          border_color=("#3B82F6", "#2563EB"),
                          fg_color=("#F8FAFC", "#1E293B"),
@@ -20,6 +26,10 @@ class DropZone(ctk.CTkFrame):
             font=("Segoe UI", 14, "bold"), text_color=("#2563EB", "#60A5FA"), cursor="hand2"
         )
         self.drop_label.pack(expand=True, fill="both")
+
+        if on_click is not None:
+            self.bind("<Button-1>", lambda _e: on_click())
+            self.drop_label.bind("<Button-1>", lambda _e: on_click())
 
         self.setup_dnd()
 

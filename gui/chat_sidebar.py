@@ -79,15 +79,18 @@ def _compute_textbox_height(textbox):
 
 
 class ChatSidebar:
+    MAX_HISTORY_MESSAGES = 10
+    MAX_EXPLAIN_QUESTIONS = 15
+
     def __init__(self, parent_frame, app):
         self.parent = parent_frame
         self.app = app
         self.queue = queue.Queue()
         self.stream_active = False
         self.current_bubble = None
+        self.chat_history = []
+        self.cancel_event = threading.Event()
         self.setup_ui()
-
-    # --- UI Setup ---
 
     def setup_ui(self):
         title_frame = ctk.CTkFrame(self.parent, fg_color="transparent")
@@ -104,7 +107,7 @@ class ChatSidebar:
         ).pack(side="left", padx=(5, 0))
 
         ctk.CTkLabel(
-            self.parent, text="AI assistant powered by CopilotKit",
+            self.parent, text="AI assistant powered by OpenAI-compatible API",
             font=("Segoe UI", 11, "italic"), text_color=("#64748B", "#94A3B8")
         ).pack(anchor="w", padx=15, pady=(0, 10))
 
@@ -125,7 +128,7 @@ class ChatSidebar:
             text_color=("#1E293B", "#F8FAFC")
         )
         self.chat_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
-        self.chat_entry.bind("<Return>", lambda event: self.handle_chat_submit())
+        self.chat_entry.bind("<Return>", lambda _event: self.handle_chat_submit())
 
         self.chat_send_btn = ctk.CTkButton(
             input_frame, text="Send", width=60,
@@ -149,12 +152,11 @@ class ChatSidebar:
             "- help     : View complete feature guide.\n\n"
             "⚙️ LLM Slash Commands:\n"
             "- /apikey <key> : Save API key securely to keyring.\n"
-            "- /explain      : Auto-generate answers & explanations."
+            "- /config       : View current API & model settings.\n"
+            "- /explain      : Explain questions in loaded files.\n"
+            "- /clear        : Clear chat conversation history."
         )
         self.add_chat_message("Copilot", welcome_msg)
-
-
-    # --- Message Bubble ---
 
     def add_chat_message(self, sender: str, text: str, actions: list = None):
         row_frame = ctk.CTkFrame(self.chat_scroll_frame, fg_color="transparent")
@@ -208,7 +210,8 @@ class ChatSidebar:
     def create_active_stream_bubble(self):
         row_frame = ctk.CTkFrame(self.chat_scroll_frame, fg_color="transparent")
         row_frame.pack(fill="x", pady=6, padx=8)
-        bubble = ctk.CTkFrame(row_frame, fg_color="#3B82F6", corner_radius=12)
+        bubble_color = ("#2563EB", "#1D4ED8")
+        bubble = ctk.CTkFrame(row_frame, fg_color=bubble_color, corner_radius=12)
         bubble.pack(side="left", anchor="w")
 
         textbox = ctk.CTkTextbox(
@@ -219,7 +222,7 @@ class ChatSidebar:
         )
         textbox.pack(padx=10, pady=(6, 6))
 
-        _disable_internal_scrollbar(textbox, "#3B82F6")
+        _disable_internal_scrollbar(textbox, bubble_color)
         _bind_scroll_redirect(textbox, self.chat_scroll_frame)
 
         textbox.configure(state="disabled")
@@ -231,15 +234,13 @@ class ChatSidebar:
             lambda: self.chat_scroll_frame._parent_canvas.yview_moveto(1.0)
         )
 
-    # --- Thinking Indicator ---
-
     def show_thinking_indicator(self):
         self.thinking_frame = ctk.CTkFrame(
             self.chat_scroll_frame, fg_color="transparent"
         )
         self.thinking_frame.pack(fill="x", pady=6, padx=8)
         bubble = ctk.CTkFrame(
-            self.thinking_frame, fg_color="#3B82F6", corner_radius=12
+            self.thinking_frame, fg_color=("#2563EB", "#1D4ED8"), corner_radius=12
         )
         bubble.pack(side="left", anchor="w")
         self.thinking_label = ctk.CTkLabel(
@@ -265,8 +266,6 @@ class ChatSidebar:
         except (AttributeError, OSError):
             pass
 
-    # --- Chat Submission ---
-
     def handle_chat_submit(self):
         msg = self.chat_entry.get().strip()
         if not msg or self.stream_active:
@@ -279,114 +278,176 @@ class ChatSidebar:
         self.chat_send_btn.configure(state="disabled")
         self.chat_entry.configure(state="disabled")
 
+        self.cancel_event.clear()
         self.stream_active = True
         threading.Thread(
             target=self.generate_copilot_reply, args=(msg,), daemon=True
         ).start()
         self.app.after(100, self.process_queue)
 
-    def generate_copilot_reply(self, msg: str):
-        msg_lower = msg.lower()
-        config = get_config()
+    def _extract_questions_for_explain(self) -> str:
+        from parser import parse_docx, parse_txt
+        collected = []
+        for path in self.app.file_manager.input_files:
+            try:
+                qs = parse_docx(path) if path.suffix.lower() == ".docx" else parse_txt(path)
+                for q in qs:
+                    opts = "\n".join(q.options)
+                    collected.append(
+                        f"Q{q.num or len(collected) + 1}: {q.question}\n{opts}\n{q.answer}"
+                    )
+                    if len(collected) >= self.MAX_EXPLAIN_QUESTIONS:
+                        break
+            except Exception as e:
+                logger.warning("Failed to parse %s for /explain: %s", path.name, e)
+            if len(collected) >= self.MAX_EXPLAIN_QUESTIONS:
+                break
+        return "\n\n".join(collected)
 
-        # Handle slash commands
+    def _handle_slash_command(self, msg: str, config: dict) -> bool:
         if msg.startswith("/apikey "):
             key = msg[len("/apikey "):].strip()
-            if save_config_value("API_KEY", key):
-                self.queue.put(("text", "API Key saved securely!"))
-            else:
-                self.queue.put(("text", "Failed to save API Key."))
+            ok = bool(key) and save_config_value("API_KEY", key)
+            self.queue.put(("text", "API Key saved securely!" if ok else "Failed to save API Key."))
             self.queue.put(("done", None))
-            return
+            return True
 
         if msg.startswith("/baseurl "):
             url = msg[len("/baseurl "):].strip()
-            if save_config_value("BASE_URL", url):
-                self.queue.put(("text", f"Base URL saved successfully!\n{url}"))
-            else:
-                self.queue.put(("text", "Failed to save Base URL."))
+            ok = save_config_value("BASE_URL", url)
+            reply = f"Base URL saved successfully!\n{url}" if ok else "Failed to save Base URL (must be http:// or https://)."
+            self.queue.put(("text", reply))
             self.queue.put(("done", None))
-            return
+            return True
 
         if msg.startswith("/model "):
             model = msg[len("/model "):].strip()
-            if save_config_value("MODEL", model):
-                self.queue.put(("text", f"Model name saved successfully!\n{model}"))
-            else:
-                self.queue.put(("text", "Failed to save model settings."))
+            ok = bool(model) and save_config_value("MODEL", model)
+            reply = f"Model name saved successfully!\n{model}" if ok else "Failed to save model settings."
+            self.queue.put(("text", reply))
             self.queue.put(("done", None))
-            return
+            return True
+
+        if msg.strip().lower() == "/config":
+            key = config.get("API_KEY", "")
+            masked = f"{key[:4]}...{key[-4:]}" if len(key) > 8 else ("Configured" if key else "Not set")
+            info = (
+                f"Current Copilot Configuration:\n"
+                f"- API Key  : {masked}\n"
+                f"- Base URL : {config.get('BASE_URL', '')}\n"
+                f"- Model    : {config.get('MODEL', '')}"
+            )
+            self.queue.put(("text", info))
+            self.queue.put(("done", None))
+            return True
+
+        if msg.strip().lower() == "/clear":
+            self.chat_history.clear()
+            self.queue.put(("text", "Conversation history cleared."))
+            self.queue.put(("done", None))
+            return True
 
         if msg.startswith("/explain"):
-            prompt = (
-                "Please generate detailed, step-by-step explanations for the active questions in the current document. "
-                "For each question, state the correct answer clearly and provide a concise explanation."
-            )
-            context = ""
-            if self.app.file_manager.count > 0:
-                names = ", ".join(f.name for f in self.app.file_manager.input_files)
-                context = f"[Context: Loaded files: {names}]\n"
-            full_prompt = f"{context}{prompt}"
-            for token in call_llm_api_stream(full_prompt, config):
-                self.queue.put(("token", token))
+            self._run_explain(config)
+            return True
+
+        return False
+
+    def _run_explain(self, config: dict) -> None:
+        if self.app.file_manager.count == 0:
+            self.queue.put(("text", "Please load a .docx or .txt file first before running /explain."))
             self.queue.put(("done", None))
             return
 
+        extracted = self._extract_questions_for_explain()
+        if not extracted:
+            self.queue.put(("text", "Could not extract any questions from the loaded files."))
+            self.queue.put(("done", None))
+            return
 
-        # Handle quick commands
+        prompt = (
+            "Please provide clear, concise explanations for each of the following multiple-choice questions. "
+            "State the correct answer and briefly explain why.\n\n"
+            f"{extracted}"
+        )
+        self._stream_llm_response(prompt, config, record_history=False)
+
+    def _handle_local_command(self, msg_lower: str) -> bool:
         cmd_map = {
             "clear": (lambda: self.app.clear_selection(notify=False),
                       "File list cleared! You can now drag and drop new files."),
-            "renumber": (lambda: self.app.mode_var.set("renumber"),
+            "renumber": (lambda: self.app.set_mode("renumber"),
                          "Switched conversion mode to: Only Renumber."),
-            "standard": (lambda: self.app.mode_var.set("standard"),
+            "standard": (lambda: self.app.set_mode("standard"),
                          "Switched conversion mode to: Standardize Format."),
         }
-        for keyword, (action, response) in cmd_map.items():
-            if keyword in msg_lower:
-                self.app.after(0, action)
-                self.queue.put(("text", response))
-                self.queue.put(("done", None))
-                return
+        if msg_lower in cmd_map:
+            action, response = cmd_map[msg_lower]
+            self.app.after(0, action)
+            self.queue.put(("text", response))
+            self.queue.put(("done", None))
+            return True
 
-        if "convert" in msg_lower:
+        if msg_lower == "convert":
             if self.app.file_manager.count == 0:
                 self.queue.put((
                     "text",
                     "You haven't selected any files yet! "
-                    "Please drag and drop or browse files first, then ask me to convert."
+                    "Please drag and drop or browse files first, then type 'convert'."
                 ))
             else:
-                self.queue.put((
-                    "text",
-                    f"Starting conversion for {self.app.file_manager.count} file(s)..."
-                ))
+                self.queue.put(("text", f"Starting conversion for {self.app.file_manager.count} file(s)..."))
                 self.app.after(0, self.app.start_conversion)
             self.queue.put(("done", None))
-            return
+            return True
 
-        if "help" in msg_lower:
+        if msg_lower == "help":
             help_text = (
                 "Here is how to use the MCQ Format Standardizer:\n"
                 "1. Drag & drop .docx or .txt files into the left box (or click to browse).\n"
-                "2. Choose either 'Standardize Format' or 'Only Renumber'.\n"
-                "3. Click 'Convert All' to process the files.\n\n"
+                "2. Choose either 'Full Standardization' or 'Renumber Only'.\n"
+                "3. Click 'Start Conversion' to process the files.\n\n"
                 "Quick Chat Commands:\n"
                 "- clear: Clear the selected file list.\n"
                 "- standard: Switch to Standardize Format mode.\n"
                 "- renumber: Switch to Only Renumber mode.\n"
                 "- convert: Start the conversion.\n\n"
-                "LLM Config Commands:\n"
+                "LLM Slash Commands:\n"
                 "- /apikey <key>: Set API Key securely.\n"
                 "- /baseurl <url>: Set custom API base URL.\n"
-                "- /model <name>: Set model name."
+                "- /model <name>: Set model name.\n"
+                "- /config: View current LLM settings.\n"
+                "- /explain: Explain questions in loaded files.\n"
+                "- /clear: Clear conversation memory."
             )
             self.queue.put(("text", help_text))
             self.queue.put(("done", None))
+            return True
+
+        return False
+
+    def _stream_llm_response(self, prompt: str, config: dict, record_history: bool = True) -> None:
+        chunks = []
+        history = list(self.chat_history) if record_history else None
+        for token in call_llm_api_stream(prompt, config, history=history, cancel_event=self.cancel_event):
+            chunks.append(token)
+            self.queue.put(("token", token))
+        if record_history and chunks:
+            self.chat_history.append({"role": "user", "content": prompt})
+            self.chat_history.append({"role": "assistant", "content": "".join(chunks)})
+            self.chat_history = self.chat_history[-self.MAX_HISTORY_MESSAGES:]
+        self.queue.put(("done", None))
+
+    def generate_copilot_reply(self, msg: str):
+        msg_lower = msg.strip().lower()
+        config = get_config()
+
+        if self._handle_slash_command(msg, config):
+            return
+        if self._handle_local_command(msg_lower):
             return
 
-        api_key = config.get("API_KEY")
-        if not api_key:
+        if not config.get("API_KEY"):
             self.queue.put((
                 "text",
                 "API Key not found.\n\n"
@@ -401,16 +462,9 @@ class ChatSidebar:
         context = ""
         if self.app.file_manager.count > 0:
             names = ", ".join(f.name for f in self.app.file_manager.input_files)
-            context = f"[Context: The user has loaded these files into the MCQ Format Standardizer: {names}]\n"
+            context = f"[Context: Loaded files in queue: {names}]\n"
 
-        prompt = f"{context}User message: {msg}"
-
-        for token in call_llm_api_stream(prompt, config):
-            self.queue.put(("token", token))
-
-        self.queue.put(("done", None))
-
-    # --- Queue Processing ---
+        self._stream_llm_response(f"{context}{msg}", config, record_history=True)
 
     def process_queue(self):
         try:
@@ -447,3 +501,4 @@ class ChatSidebar:
         except queue.Empty:
             if self.stream_active:
                 self.app.after(50, self.process_queue)
+

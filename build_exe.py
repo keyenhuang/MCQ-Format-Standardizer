@@ -28,6 +28,7 @@ def build():
         "--windowed",
         "--name=MCQFormatStandardizer",
         f"--add-data={add_data_ctk}",
+        "--collect-all=tkinterdnd2",
         "main.py"
     ]
 

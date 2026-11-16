@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 from logger import get_logger
 
@@ -35,6 +36,16 @@ DEFAULT_USER_AGENT = (
 )
 
 
+def reset_config_cache():
+    global _CONFIG_CACHE
+    _CONFIG_CACHE = None
+
+
+def is_valid_http_url(url: str) -> bool:
+    parsed = urlparse(url.strip())
+    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+
 def _apply_env_overrides(config):
     env_key = os.environ.get("MCQ_API_KEY") or os.environ.get("API_KEY")
     if env_key:
@@ -47,11 +58,39 @@ def _apply_env_overrides(config):
         config["MODEL"] = env_model.strip()
 
 
+def _load_file_config(config):
+    if not CONFIG_FILE.exists():
+        return
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if data.get("BASE_URL"):
+            config["BASE_URL"] = data["BASE_URL"].strip()
+        if data.get("MODEL"):
+            config["MODEL"] = data["MODEL"].strip()
+        api_key_from_file = data.get("API_KEY", "").strip()
+        if api_key_from_file:
+            logger.warning("API key found in plaintext config.json. Consider using keyring or .env for better security.")
+            config["API_KEY"] = api_key_from_file
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning("Failed to load config.json: %s", e)
+
+
+def _load_keyring_key(config):
+    if not keyring:
+        return
+    try:
+        stored_key = keyring.get_password("MCQFormatStandardizer", "API_KEY")
+        if stored_key:
+            config["API_KEY"] = stored_key.strip()
+    except Exception as e:
+        logger.warning("Failed to read from keyring: %s", e)
+
+
 def get_config():
     global _CONFIG_CACHE
     if _CONFIG_CACHE is not None:
         return _CONFIG_CACHE
-
 
     config = {
         "API_KEY": "",
@@ -61,29 +100,8 @@ def get_config():
         "USER_AGENT": os.environ.get("MCQ_USER_AGENT") or DEFAULT_USER_AGENT,
     }
 
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if data.get("BASE_URL"):
-                config["BASE_URL"] = data["BASE_URL"].strip()
-            if data.get("MODEL"):
-                config["MODEL"] = data["MODEL"].strip()
-            api_key_from_file = data.get("API_KEY", "").strip()
-            if api_key_from_file:
-                logger.warning("API key found in plaintext config.json. Consider using keyring or .env for better security.")
-                config["API_KEY"] = api_key_from_file
-        except (json.JSONDecodeError, OSError) as e:
-            logger.warning("Failed to load config.json: %s", e)
-
-    if keyring:
-        try:
-            stored_key = keyring.get_password("MCQFormatStandardizer", "API_KEY")
-            if stored_key:
-                config["API_KEY"] = stored_key.strip()
-        except Exception as e:
-            logger.warning("Failed to read from keyring: %s", e)
-
+    _load_file_config(config)
+    _load_keyring_key(config)
     _apply_env_overrides(config)
 
     _CONFIG_CACHE = config
@@ -91,8 +109,14 @@ def get_config():
 
 
 def save_config_value(key_name, value):
-    config = get_config()
+    get_config()
     value_stripped = value.strip() if isinstance(value, str) else value
+
+    if key_name == "BASE_URL" and isinstance(value_stripped, str):
+        value_stripped = value_stripped.rstrip("/")
+        if not is_valid_http_url(value_stripped):
+            logger.warning("Invalid BASE_URL rejected: %s", value_stripped)
+            return False
 
     if key_name == "API_KEY" and keyring:
         try:
@@ -136,3 +160,4 @@ def _save_to_json_file(key_name, value):
     except (json.JSONDecodeError, OSError) as e:
         logger.warning("Error saving config: %s", e)
         return False
+
